@@ -15,15 +15,18 @@ import { registerMessageRouter } from './message-router'
 import { clearBundleLicenseTimer } from './bundle-license'
 import { clearTabWriteLock, withTabWriteLock } from './tab-write-lock'
 import { isDetectablePageUrl, isObservableRequestUrl } from '@/utils/page-support'
+import { clearLegacySessionKeys } from '@/utils/browser-compat'
 
 registerMessageRouter()
 refreshAllBadges().catch(() => {})
 
 chrome.runtime.onInstalled.addListener(() => {
+  clearLegacySessionKeys().catch(() => {})
   injectContentObserverIntoOpenTabs()
 })
 
 chrome.runtime.onStartup.addListener(() => {
+  clearLegacySessionKeys().catch(() => {})
   injectContentObserverIntoOpenTabs()
 })
 

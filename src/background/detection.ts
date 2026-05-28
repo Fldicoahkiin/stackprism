@@ -124,7 +124,7 @@ export const runActivePageDetection = async (tabId: number, options: { force?: b
       world: 'MAIN',
       files: ['injected/page-detector.iife.js']
     })
-    const page = injection?.[0]?.result
+    const page = await injection?.[0]?.result
     if (!page) return
 
     const augmentedPage = await augmentPageWithWordPressThemeStyles(page)
