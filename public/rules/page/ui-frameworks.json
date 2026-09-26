@@ -200,7 +200,7 @@
         "category": "构建与运行时",
         "name": "styled-components",
         "confidence": "高",
-        "patterns": ["data-styled="],
+        "patterns": ["<style[^>]*\\sdata-styled(?:-version)?="],
         "selectors": ["style[data-styled-version]", "style[data-styled]"],
         "versionFromAttribute": "data-styled-version"
       },

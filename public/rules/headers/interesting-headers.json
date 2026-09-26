@@ -76,7 +76,16 @@
       "x-hudson",
       "x-hudson-cli-port",
       "x-app-name",
-      "x-cascade"
+      "x-cascade",
+      "x-via-jsl",
+      "wzws-ray",
+      "x-powered-by-360wzb",
+      "x-yd-waf-info",
+      "x-yd-info",
+      "x-amzn-waf-action",
+      "x-sl-compstate",
+      "x-data-origin",
+      "x-protected-by"
     ]
   }
 }

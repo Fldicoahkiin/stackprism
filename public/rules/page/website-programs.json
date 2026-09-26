@@ -262,7 +262,7 @@
       {
         "name": "Hexo",
         "kind": "静态博客",
-        "patterns": ["hexo", "hexo-generator", "hexo-theme"]
+        "patterns": ["<meta[^>]+name=[\"']?generator[\"']?[^>]+content=[\"'][^\"']*hexo", "hexo-generator", "hexo-theme"]
       },
       {
         "name": "Hugo",

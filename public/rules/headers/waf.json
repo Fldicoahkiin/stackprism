@@ -1,0 +1,213 @@
+{
+  "headers": {
+    "headerPatterns": [
+      {
+        "defaults": {
+          "category": "WAF / 防火墙",
+          "confidence": "高"
+        },
+        "rules": [
+          {
+            "defaults": { "name": "SafeLine / 雷池 WAF", "url": "https://waf-ce.chaitin.cn" },
+            "rules": [
+              {
+                "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;](?:sl-session|sl-challenge-server)="],
+                "evidence": "Set-Cookie 包含雷池验证 Cookie"
+              },
+              {
+                "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;](?:sl_jwt_session|sl_jwt_sign)="],
+                "evidence": "Set-Cookie 包含雷池会话 Cookie"
+              }
+            ]
+          },
+          {
+            "defaults": { "name": "Safedog / 安全狗", "url": "https://www.safedog.cn" },
+            "rules": [
+              { "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]safedog-flow-item="], "evidence": "Set-Cookie 包含 safedog-flow-item" },
+              { "patterns": ["(?:^|\\n)server:[^\\n]*\\bsafedog"], "evidence": "Server 头包含 Safedog" }
+            ]
+          },
+          {
+            "name": "Yunsuo / 云锁",
+            "url": "https://www.yunsuo.com.cn",
+            "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]yunsuo_session(?:_verify)?="],
+            "evidence": "Set-Cookie 包含云锁会话 Cookie"
+          },
+          {
+            "defaults": { "name": "Jiasule / 知道创宇加速乐", "url": "https://defense.yunaq.com" },
+            "rules": [
+              { "patterns": ["(?:^|\\n)x-via-jsl:"], "evidence": "响应头包含 X-Via-JSL" },
+              { "patterns": ["(?:^|\\n)server:[^\\n]*jiasule"], "evidence": "Server 头包含 jiasule" },
+              { "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]__jsluid(?:_[hs])?="], "evidence": "Set-Cookie 包含 __jsluid" },
+              { "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]jsl_tracking"], "evidence": "Set-Cookie 包含 jsl_tracking" }
+            ]
+          },
+          {
+            "defaults": { "name": "360 网站卫士 / 奇安信网站卫士", "url": "https://www.qianxin.com" },
+            "rules": [
+              { "patterns": ["(?:^|\\n)wzws-ray:"], "evidence": "响应头包含 WZWS-Ray" },
+              { "patterns": ["(?:^|\\n)x-powered-by-360wzb:"], "evidence": "响应头包含 X-Powered-By-360WZB" },
+              { "patterns": ["(?:^|\\n)server:[^\\n]*(?:qianxin-waf|360wzws)"], "evidence": "Server 头包含网站卫士标识" },
+              { "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]wzws_[a-z0-9]+="], "evidence": "Set-Cookie 包含 wzws_ Cookie" }
+            ]
+          },
+          {
+            "defaults": { "name": "360 PanYun / 360 磐云", "url": "https://www.360panyun.com" },
+            "rules": [
+              { "patterns": ["(?:^|\\n)server:[^\\n]*\\bpanyun"], "evidence": "Server 头包含 panyun" },
+              { "patterns": ["(?:^|\\n)x-panyun-[a-z-]+:"], "evidence": "响应头包含 X-Panyun-*" }
+            ]
+          },
+          {
+            "defaults": { "name": "YUNDUN / 云盾 WAF", "url": "https://www.yundun.com" },
+            "rules": [
+              { "patterns": ["(?:^|\\n)server:[^\\n]*\\byundun"], "evidence": "Server 头包含 YUNDUN" },
+              { "patterns": ["(?:^|\\n)x-cache:[^\\n]*\\byundun"], "evidence": "X-Cache 包含 YUNDUN" },
+              { "patterns": ["(?:^|\\n)x-yd-(?:waf-)?info:"], "evidence": "响应头包含 X-YD-Info" },
+              { "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]yd_cookie="], "evidence": "Set-Cookie 包含 yd_cookie" }
+            ]
+          },
+          {
+            "name": "Alibaba Cloud WAF / 阿里云 WAF",
+            "url": "https://www.aliyun.com/product/waf",
+            "confidence": "中",
+            "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;](?:acw_tc|acw_sc__v2|aliyungf_tc)="],
+            "evidence": "Set-Cookie 包含阿里云 WAF / 高防 Cookie"
+          },
+          {
+            "defaults": { "name": "Huawei Cloud WAF / 华为云 WAF", "url": "https://www.huaweicloud.com/product/waf.html" },
+            "rules": [
+              { "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]hwwafses(?:id|time)="], "evidence": "Set-Cookie 包含 HWWAFSESID" },
+              { "patterns": ["(?:^|\\n)server:[^\\n]*huaweicloudwaf"], "evidence": "Server 头包含 HuaweiCloudWAF" }
+            ]
+          },
+          {
+            "name": "NSFOCUS WAF / 绿盟 WAF",
+            "url": "https://www.nsfocus.com.cn",
+            "patterns": ["(?:^|\\n)server:[^\\n]*\\bnsfocus"],
+            "evidence": "Server 头包含 NSFocus"
+          },
+          {
+            "name": "Bluedon WAF / 蓝盾 WAF",
+            "url": "http://www.bluedon.com",
+            "patterns": ["(?:^|\\n)server:[^\\n]*\\bbdwaf"],
+            "evidence": "Server 头包含 BDWAF"
+          },
+          {
+            "name": "AWS WAF",
+            "url": "https://aws.amazon.com/waf/",
+            "patterns": ["(?:^|\\n)x-amzn-waf-action:"],
+            "evidence": "响应头包含 x-amzn-waf-action"
+          },
+          {
+            "name": "F5 BIG-IP ASM",
+            "url": "https://www.f5.com/products/big-ip-services/advanced-waf",
+            "confidence": "中",
+            "caseSensitive": true,
+            "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]TS(?:[0-9a-f]{6}|[0-9a-f]{8})="],
+            "evidence": "Set-Cookie 包含 F5 ASM TS Cookie"
+          },
+          {
+            "defaults": {
+              "name": "Barracuda WAF",
+              "url": "https://www.barracuda.com/products/application-protection/web-application-firewall"
+            },
+            "rules": [
+              {
+                "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]barra_counter_session="],
+                "evidence": "Set-Cookie 包含 barra_counter_session"
+              },
+              {
+                "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]bni(?:__barracuda_lb_cookie|_persistence)="],
+                "evidence": "Set-Cookie 包含 Barracuda BNI Cookie"
+              },
+              { "patterns": ["(?:^|\\n)server:[^\\n]*barracudawaf"], "evidence": "Server 头包含 BarracudaWAF" }
+            ]
+          },
+          {
+            "defaults": { "name": "FortiWeb", "url": "https://www.fortinet.com/products/web-application-firewall/fortiweb" },
+            "rules": [
+              { "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]fortiwafsid="], "evidence": "Set-Cookie 包含 FORTIWAFSID" },
+              { "patterns": ["(?:^|\\n)server:[^\\n]*fortiweb"], "evidence": "Server 头包含 FortiWeb" }
+            ]
+          },
+          {
+            "defaults": { "name": "NetScaler AppFirewall", "url": "https://www.netscaler.com", "confidence": "中" },
+            "rules": [
+              {
+                "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;](?:citrix_ns_id|ns_af)="],
+                "evidence": "Set-Cookie 包含 NetScaler AppFW Cookie"
+              },
+              { "patterns": ["(?:^|\\n)via:[^\\n]*\\bns-cache"], "evidence": "Via 包含 NS-CACHE" },
+              { "patterns": ["(?:^|\\n)cneonction:"], "evidence": "响应头包含 NetScaler 改写的 Cneonction 头" },
+              { "patterns": ["(?:^|\\n)nncoection:"], "evidence": "响应头包含 NetScaler 改写的 nnCoection 头" }
+            ]
+          },
+          {
+            "name": "Radware AppWall",
+            "url": "https://www.radware.com",
+            "patterns": ["(?:^|\\n)x-sl-compstate:"],
+            "evidence": "响应头包含 X-SL-CompState"
+          },
+          {
+            "defaults": { "name": "Reblaze", "url": "https://www.reblaze.com" },
+            "rules": [
+              { "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]rbzid="], "evidence": "Set-Cookie 包含 rbzid" },
+              { "patterns": ["(?:^|\\n)server:[^\\n]*reblaze"], "evidence": "Server 头包含 Reblaze" }
+            ]
+          },
+          {
+            "name": "Wallarm",
+            "url": "https://www.wallarm.com",
+            "patterns": ["(?:^|\\n)server:[^\\n]*nginx[-_]wallarm"],
+            "evidence": "Server 头包含 nginx-wallarm"
+          },
+          {
+            "name": "ModSecurity",
+            "url": "https://github.com/owasp-modsecurity/ModSecurity",
+            "patterns": ["(?:^|\\n)server:[^\\n]*mod_security"],
+            "evidence": "Server 头包含 Mod_Security"
+          },
+          {
+            "defaults": { "name": "NAXSI", "url": "https://github.com/wargio/naxsi" },
+            "rules": [
+              { "patterns": ["(?:^|\\n)x-data-origin:\\s*naxsi"], "evidence": "X-Data-Origin 包含 naxsi" },
+              { "patterns": ["(?:^|\\n)server:[^\\n]*\\bnaxsi"], "evidence": "Server 头包含 naxsi" }
+            ]
+          },
+          {
+            "name": "Imunify360",
+            "url": "https://www.imunify360.com",
+            "patterns": ["(?:^|\\n)server:[^\\n]*imunify360"],
+            "evidence": "Server 头包含 Imunify360"
+          },
+          {
+            "defaults": { "name": "DDoS-Guard", "url": "https://ddos-guard.net" },
+            "rules": [
+              { "patterns": ["(?:^|\\n)server:[^\\n]*ddos-guard"], "evidence": "Server 头包含 ddos-guard" },
+              { "patterns": ["(?:^|\\n)set-cookie:[^\\n]*[\\s,;]__ddg(?:\\d+|id|mark)_="], "evidence": "Set-Cookie 包含 __ddg Cookie" }
+            ]
+          },
+          {
+            "name": "Qrator",
+            "url": "https://qrator.net",
+            "patterns": ["(?:^|\\n)server:[^\\n]*\\bqrator"],
+            "evidence": "Server 头包含 Qrator"
+          },
+          {
+            "name": "Comodo cWatch WAF",
+            "url": "https://cwatch.comodo.com",
+            "patterns": ["(?:^|\\n)server:[^\\n]*protected by comodo"],
+            "evidence": "Server 头包含 Comodo WAF 标识"
+          },
+          {
+            "name": "Shieldon",
+            "url": "https://shieldon.io",
+            "patterns": ["(?:^|\\n)x-protected-by:[^\\n]*shieldon"],
+            "evidence": "X-Protected-By 包含 Shieldon"
+          }
+        ]
+      }
+    ]
+  }
+}

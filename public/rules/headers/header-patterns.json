@@ -448,7 +448,7 @@
               },
               {
                 "name": "Huawei Cloud CDN",
-                "patterns": ["x-hwcdn-|huaweicloud|hwcdn|cdnhwc"],
+                "patterns": ["x-hwcdn-|huaweicloud(?!waf)|hwcdn|cdnhwc"],
                 "evidence": "响应头、Via、Server 或 URL 包含 CDN 厂商特征"
               },
               {

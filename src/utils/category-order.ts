@@ -4,6 +4,7 @@ export const CATEGORY_ORDER: readonly string[] = [
   '前端库',
   '构建与运行时',
   'CDN / 托管',
+  'WAF / 防火墙',
   'Web 服务器',
   '后端 / 服务器框架',
   '开发语言 / 运行时',

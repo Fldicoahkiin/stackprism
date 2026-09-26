@@ -1,0 +1,120 @@
+{
+  "page": {
+    "saasServices": [
+      {
+        "defaults": {
+          "category": "WAF / 防火墙",
+          "confidence": "高"
+        },
+        "rules": [
+          {
+            "defaults": { "matchIn": ["resources"] },
+            "rules": [
+              {
+                "name": "SafeLine / 雷池 WAF",
+                "url": "https://waf-ce.chaitin.cn",
+                "globals": ["SafeLineChallenge"],
+                "patterns": ["/\\.safeline/(?:static|challenge)/", "^https?://challenge\\.rivers\\.chaitin\\.cn/challenge/"]
+              },
+              {
+                "defaults": { "name": "BT WAF / 宝塔网站防火墙", "url": "https://www.bt.cn" },
+                "rules": [
+                  { "patterns": ["/rxizm32rm3cppyyw_", "/a20be899_96a6_40b2_88ba_32f1f75f1552_yanzheng_", "/get_btwaf_captcha_base64"] },
+                  { "patterns": ["/(?:renji|huadong)_296d626f_[0-9a-f]{32}\\.js", "/btwaf_aes_forge_[0-9a-f]+\\.js"] }
+                ]
+              },
+              {
+                "name": "AWS WAF",
+                "url": "https://aws.amazon.com/waf/",
+                "globals": ["AwsWafIntegration", "AwsWafCaptcha"],
+                "patterns": ["^https?://[^/]+\\.awswaf\\.com/"]
+              },
+              {
+                "name": "DDoS-Guard",
+                "url": "https://ddos-guard.net",
+                "patterns": ["/\\.well-known/ddos-guard/"]
+              },
+              {
+                "name": "Safedog / 安全狗",
+                "url": "https://www.safedog.cn",
+                "patterns": ["^https?://404\\.safedog\\.cn/"]
+              },
+              {
+                "name": "KS-WAF / 知道创宇",
+                "url": "https://www.knownsec.com",
+                "patterns": ["/ks[-_]waf[-_]error\\.png"]
+              },
+              {
+                "name": "Alibaba Cloud WAF / 阿里云 WAF",
+                "url": "https://www.aliyun.com/product/waf",
+                "patterns": ["alicdn\\.com/sd-base/static/[\\d.]+/image/405\\.png"]
+              },
+              {
+                "name": "Tencent Cloud WAF / 腾讯云 WAF",
+                "url": "https://cloud.tencent.com/product/waf",
+                "matchIn": ["resources", "url"],
+                "patterns": ["^https?://waf\\.tencent(?:-?cloud)?\\.com/"]
+              },
+              {
+                "name": "Jiasule / 知道创宇加速乐",
+                "url": "https://defense.yunaq.com",
+                "patterns": ["^https?://static\\.jiasule\\.com/"]
+              },
+              {
+                "name": "YUNDUN / 云盾 WAF",
+                "url": "https://www.yundun.com",
+                "patterns": ["yundun\\.com/yd[-_]http[-_]error/"]
+              },
+              {
+                "name": "360 网站卫士 / 奇安信网站卫士",
+                "url": "https://www.qianxin.com",
+                "patterns": ["/wzws-waf-cgi/"]
+              },
+              {
+                "name": "ModSecurity",
+                "url": "https://github.com/owasp-modsecurity/ModSecurity",
+                "patterns": ["/modsecurity[-_]errorpage/"]
+              }
+            ]
+          },
+          {
+            "defaults": { "kind": "验证 / 拦截页", "matchIn": ["html"] },
+            "rules": [
+              {
+                "name": "SafeLine / 雷池 WAF",
+                "url": "https://waf-ce.chaitin.cn",
+                "selectors": ["#slg-box", "title#slg-title"]
+              },
+              {
+                "name": "BT WAF / 宝塔网站防火墙",
+                "url": "https://www.bt.cn",
+                "confidence": "中",
+                "patterns": ["<title>(?:宝塔)?网站防火墙</title>[\\s\\S]{0,4000}?(?:网站管理员设置拦截|请联系宝塔)"]
+              },
+              {
+                "name": "Yunsuo / 云锁",
+                "url": "https://www.yunsuo.com.cn",
+                "selectors": ["img.yunsuologo"]
+              },
+              {
+                "name": "Chuangyu Shield / 创宇盾",
+                "url": "https://www.365cyd.com",
+                "patterns": ["href=[\"'][^\"']*help\\.365cyd\\.com/cyd-error-help"]
+              },
+              {
+                "name": "Xuanwudun / 玄武盾",
+                "url": "https://www.dbappsecurity.com.cn",
+                "patterns": ["(?:href|src|action)=[\"'][^\"']*admin\\.dbappwaf\\.cn/"]
+              },
+              {
+                "name": "360 网站卫士 / 奇安信网站卫士",
+                "url": "https://www.qianxin.com",
+                "patterns": ["(?:href|src|action)=[\"'][^\"']*/wzws-waf-cgi/"]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

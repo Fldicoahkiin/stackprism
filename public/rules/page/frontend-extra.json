@@ -169,7 +169,7 @@
           {
             "name": "Shoelace",
             "patterns": ["shoelace\\.style|@shoelace-style|<sl-[a-z-]+"],
-            "classPrefixes": ["sl-"]
+            "classPrefixes": ["sl-theme-"]
           },
           {
             "name": "FAST",

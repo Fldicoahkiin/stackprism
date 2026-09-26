@@ -204,6 +204,14 @@
               "matchType": "regex",
               "patterns": ["bbp-(?:forum|topic|reply|user)-", "/plugins/bbpress/", "/bbpress\\.css", "data-bbp-"],
               "matchIn": ["html", "resources"]
+            },
+            {
+              "name": "Rhex",
+              "url": "https://github.com/lovedevpanda/Rhex",
+              "matchType": "regex",
+              "globals": ["_rhex", "__RHEX_PRELOADED_READING_HISTORY__"],
+              "patterns": ["\\brhex-theme\\b", "rhexglobalsdkbootstrap", "/api/addons/global-layout-slots\\?"],
+              "matchIn": ["html", "resources"]
             }
           ]
         },

@@ -10,6 +10,7 @@
 | UI / CSS 框架     | Tailwind CSS、Bootstrap、Material UI、Ant Design、Element Plus、Chakra UI |
 | 构建运行时        | Webpack、Vite、Rollup、Parcel、esbuild、SWC、Turbopack、Bun               |
 | CDN / 托管        | Cloudflare、Akamai、Fastly、AWS CloudFront、Vercel、Netlify、jsDelivr     |
+| WAF / 防火墙      | 雷池 SafeLine、宝塔网站防火墙、安全狗、云锁、阿里云 WAF、AWS WAF          |
 | 后端框架          | Django、Flask、Rails、Laravel、Express、Koa、Spring、ASP.NET              |
 | 网站程序          | WordPress、Drupal、Discuz!、Typecho、ZBlog、phpBB、MediaWiki              |
 | 主题 / 模板       | WordPress 主题、Drupal 主题、CMS 模板路径反推                             |
@@ -26,7 +27,7 @@
 | Drupal 模块       | 4000+ 个具名模块                                                          |
 | 安全与协议        | HTTPS、CSP、Service Worker                                                |
 | 其他库            | 自定义规则默认归类、未明确分类的兜底                                      |
-| ... 等共 23 类    |
+| ... 等共 24 类    |
 
 完整列表：`src/utils/category-order.ts` 的 `CATEGORY_ORDER` 数组。
 
