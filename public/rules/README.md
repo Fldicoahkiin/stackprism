@@ -69,4 +69,4 @@
 
 `page/data-infra-assets.json` 是人工维护的数据基础设施资源路径规则，覆盖搜索引擎、向量数据库、数据库管理面板、消息队列、数据管道、大数据任务面板和存储管理面板。规则优先使用产品名资源或控制台专属路径，并通过 `resourceOnly` 和 `resourceHints` 降低页面源码大范围扫描带来的误报。
 
-`headers/waf.json` 和 `page/waf-page.json` 是人工维护的 WAF / 防火墙规则。响应头规则识别 WAF 下发的 Cookie、Server 和专属响应头；页面规则只识别 WAF 的验证页、拦截页和前端 SDK，使用专属资源路径、全局变量、元素 ID 或带属性结构的链接，不匹配正文里的产品名和报错文案。响应头规则按单个响应头或 Cookie 拆条：构建期 hint 只保留每条规则最长的 3 个字面量片段，多个特征合在一条里可能被预筛漏掉，新增规则后用 `tests/waf-rules.test.mjs` 覆盖。
+`headers/waf.json` 和 `page/waf-page.json` 是人工维护的 WAF / 防火墙规则。响应头规则识别 WAF 下发的 Cookie、Server 和专属响应头；页面规则只识别 WAF 的验证页、拦截页和前端 SDK，使用专属资源路径、全局变量、元素 ID 或带属性结构的链接，不匹配正文里的产品名和报错文案。响应头规则按单个响应头或 Cookie 拆条：构建期的旧版预筛门槛（`__legacyHints`）只看每条规则最长的 3 个字面量片段，多个特征合在一条里可能被挡住，新增规则后用 `tests/waf-rules.test.mjs` 覆盖。

@@ -5,35 +5,11 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import manifest from './src/manifest.config'
+import { buildRuleHintFields } from './src/utils/rule-hints'
 
-const HINT_MIN_LEN = 4
-const HINT_MAX_COUNT = 3
-const REGEX_LITERAL_SPLIT = /[\\^$.|?*+()[\]{}]/
-const REGEX_CONTROL_ESCAPE = /\\[bBdDsSwW]/g
 const REGEX_ESCAPE = /[.*+?^${}()|[\]\\]/g
 
 const escapeForRegex = (value: string) => value.replace(REGEX_ESCAPE, '\\$&')
-
-const normalizeHintCandidate = (value: string): string => value.toLowerCase().replace(/\s+/g, ' ').trim()
-
-const extractRuleHints = (patterns: unknown, isKeyword: boolean): string[] => {
-  if (!Array.isArray(patterns) || !patterns.length) return []
-  const candidates: string[] = []
-  for (const pattern of patterns) {
-    const text = String(pattern || '')
-    if (!text) continue
-    if (isKeyword) {
-      const lower = text.toLowerCase().trim()
-      if (lower.length >= HINT_MIN_LEN) candidates.push(lower)
-      continue
-    }
-    for (const segment of text.replace(REGEX_CONTROL_ESCAPE, ' ').split(REGEX_LITERAL_SPLIT)) {
-      const lower = normalizeHintCandidate(segment)
-      if (lower.length >= HINT_MIN_LEN) candidates.push(lower)
-    }
-  }
-  return [...new Set(candidates)].sort((a, b) => b.length - a.length).slice(0, HINT_MAX_COUNT)
-}
 
 const buildKeywordCombinedSource = (patterns: unknown): string => {
   if (!Array.isArray(patterns) || !patterns.length) return ''
@@ -44,20 +20,36 @@ const buildKeywordCombinedSource = (patterns: unknown): string => {
   return segments.length ? segments.join('|') : ''
 }
 
-const isLeafRule = (node: any): boolean => Boolean(node) && typeof node === 'object' && !Array.isArray(node) && Array.isArray(node.patterns)
+const isPlainNode = (node: any): boolean => Boolean(node) && typeof node === 'object' && !Array.isArray(node)
+const isLeafRule = (node: any): boolean => isPlainNode(node) && Array.isArray(node.patterns)
+const isRuleGroup = (node: any): boolean => isPlainNode(node) && Array.isArray(node.rules)
 
-const precompileRuleTree = (node: any): void => {
+// 规则组的 defaults 会被展开到每条规则上（matchType、resourceHints 常写在 defaults 里），预编译时按展开后的字段判断
+const precompileRuleTree = (node: any, inherited: Record<string, unknown> = {}): void => {
   if (!node) return
   if (Array.isArray(node)) {
-    for (const item of node) precompileRuleTree(item)
+    for (const item of node) precompileRuleTree(item, inherited)
     return
   }
-  if (typeof node !== 'object') return
+  if (!isPlainNode(node)) return
+  if (isRuleGroup(node)) {
+    const defaults = {
+      ...inherited,
+      ...(isPlainNode(node.defaults) ? node.defaults : {}),
+      ...(isPlainNode(node.$defaults) ? node.$defaults : {})
+    }
+    for (const item of node.rules) precompileRuleTree(item, defaults)
+    return
+  }
   if (isLeafRule(node)) {
-    const isKeyword = node.matchType === 'keyword'
-    const hints = Array.isArray(node.__hints) && node.__hints.length ? node.__hints : extractRuleHints(node.patterns, isKeyword)
+    const rule = { ...inherited, ...node }
+    const isKeyword = rule.matchType === 'keyword'
+    const { hints, legacyHints } = buildRuleHintFields(node.patterns, isKeyword, node.matchType === 'keyword', node.__hints)
     if (hints.length) node.__hints = hints
-    if (isKeyword) {
+    else delete node.__hints
+    // 旧版带 resourceHints 的规则不看自动 hint，旧门槛只留给没有 resourceHints 的规则
+    if (legacyHints.length && !(Array.isArray(rule.resourceHints) && rule.resourceHints.length)) node.__legacyHints = legacyHints
+    if (node.matchType === 'keyword') {
       const combined = buildKeywordCombinedSource(node.patterns)
       if (combined) node.__keywordCombined = combined
     }

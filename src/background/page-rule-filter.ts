@@ -1,49 +1,58 @@
-// 页面检测只注入可能命中的规则：带 resourceHints 的规则先按页面资源 URL 预筛，其余规则原样保留。
+// 页面检测只注入可能命中的规则：先在页面里取一次资源 URL，带 resourceHints 的规则按 resourceHints 裁剪，
+// 只能靠资源 URL 命中的规则再按必需字面量裁剪，其余规则原样保留。
 // 探测不到资源时不裁剪，与 page-detector 在资源为空时退回整页文本判断的逻辑保持一致。
+import type { HintLookup } from '@/utils/rule-hints'
+import { createRuleListsScannerCache, getRuleAutoHints, getRuleResourceHints, passesResourceHintLookup } from './rule-matcher'
 
 type PageRules = Record<string, unknown>
 
-// 只在 Service Worker 里使用的规则分组，不需要注入页面
-const SERVICE_WORKER_ONLY_KEYS = new Set(['bundleLicenseLibraries', 'dynamicTechnologies'])
-const resourceHintCache = new WeakMap<object, string[]>()
-
-const lowerResourceHints = (rule: any): string[] =>
-  Array.isArray(rule?.resourceHints) ? rule.resourceHints.map((hint: unknown) => String(hint || '').toLowerCase()) : []
-
-export const collectResourceHints = (pageRules: PageRules): string[] => {
-  const cached = resourceHintCache.get(pageRules)
-  if (cached) return cached
-  const hints = new Set<string>()
-  for (const [key, list] of Object.entries(pageRules || {})) {
-    if (SERVICE_WORKER_ONLY_KEYS.has(key) || !Array.isArray(list)) continue
-    for (const rule of list) {
-      for (const hint of lowerResourceHints(rule)) hints.add(hint)
-    }
-  }
-  const result = [...hints]
-  resourceHintCache.set(pageRules, result)
-  return result
+export interface PageResourceProbe {
+  // 资源 URL，小写、换行分隔
+  text: string
+  href: string
 }
 
-export const selectPageDetectorRules = (pageRules: PageRules, hintHits: string[] | null): PageRules => {
-  const hits = hintHits ? new Set(hintHits) : null
+// 只在 Service Worker 里使用的规则分组，不需要注入页面
+const SERVICE_WORKER_ONLY_KEYS = new Set(['bundleLicenseLibraries', 'dynamicTechnologies'])
+const RESOURCE_TARGETS = new Set(['resources', 'url', 'dynamic'])
+
+const hasItems = (value: unknown): boolean => Array.isArray(value) && value.length > 0
+
+// page-detector 对这类规则只拿 pattern 匹配资源 URL（matchIn 含 url 时加上页面地址），
+// 全局变量、选择器、类名、CSS 变量都不看，所以必需字面量不在资源里就不可能命中
+const isResourceScopedRule = (rule: any): boolean => {
+  if (rule?.resourceOnly === true) return true
+  if (!hasItems(rule?.matchIn) || !rule.matchIn.every((item: string) => RESOURCE_TARGETS.has(item))) return false
+  return !hasItems(rule.globals) && !hasItems(rule.classPrefixes) && !hasItems(rule.classNames) && !hasItems(rule.cssVariables)
+}
+
+const getPruneScanner = createRuleListsScannerCache(rule => [
+  ...getRuleResourceHints(rule),
+  ...(isResourceScopedRule(rule) ? getRuleAutoHints(rule) : [])
+])
+
+const canMatchResources = (rule: any, lookup: HintLookup, href: string): boolean => {
+  if (!passesResourceHintLookup(rule, lookup)) return false
+  if (!isResourceScopedRule(rule)) return true
+  const hints = getRuleAutoHints(rule)
+  return !hints.length || hints.some(hint => lookup(hint) || href.includes(hint))
+}
+
+export const selectPageDetectorRules = (pageRules: PageRules, probe: PageResourceProbe | null): PageRules => {
+  const entries = Object.entries(pageRules || {}).filter(([key]) => !SERVICE_WORKER_ONLY_KEYS.has(key))
+  if (!probe) return Object.fromEntries(entries)
+  const prunable = entries.filter(([key, value]) => key !== 'customRules' && Array.isArray(value))
+  const lookup = getPruneScanner(prunable.map(([, value]) => value)).scan(probe.text)
+  const href = String(probe.href || '').toLowerCase()
   const selected: PageRules = {}
-  for (const [key, value] of Object.entries(pageRules || {})) {
-    if (SERVICE_WORKER_ONLY_KEYS.has(key)) continue
-    if (!hits || key === 'customRules' || !Array.isArray(value)) {
-      selected[key] = value
-      continue
-    }
-    selected[key] = value.filter(rule => {
-      const hints = lowerResourceHints(rule)
-      return !hints.length || hints.some(hint => hits.has(hint))
-    })
+  for (const [key, value] of entries) {
+    selected[key] = key !== 'customRules' && Array.isArray(value) ? value.filter(rule => canMatchResources(rule, lookup, href)) : value
   }
   return selected
 }
 
-// 注入页面执行（必须自包含）：资源收集方式与 page-detector 的 collectResources 一致，返回出现过的 hint；没有资源时返回 null
-export const probeResourceHintHits = (hints: string[]): string[] | null => {
+// 注入页面执行（必须自包含）：资源收集方式与 page-detector 的 collectResources 一致；没有资源时返回 null
+export const probePageResources = (): PageResourceProbe | null => {
   const inspectable = (value: unknown) => {
     const url = String(value || '').trim()
     return Boolean(url) && !/^(?:data|blob|javascript|about):/i.test(url)
@@ -61,15 +70,14 @@ export const probeResourceHintHits = (hints: string[]): string[] | null => {
     .filter(inspectable)
     .slice(0, 200)
   const text = [...new Set([...scripts, ...stylesheets, ...resourceTiming, ...images])].join('\n').toLowerCase()
-  if (!text) return null
-  return hints.filter(hint => text.includes(hint))
+  return text ? { text, href: location.href } : null
 }
 
-export const probePageResourceHints = async (tabId: number, hints: string[]): Promise<string[] | null> => {
-  if (!hints.length) return null
+export const probeTabResources = async (tabId: number): Promise<PageResourceProbe | null> => {
   try {
-    const [probe] = await chrome.scripting.executeScript({ target: { tabId }, func: probeResourceHintHits, args: [hints] })
-    return Array.isArray(probe?.result) ? probe.result : null
+    const [probe] = await chrome.scripting.executeScript({ target: { tabId }, func: probePageResources })
+    const result = probe?.result as PageResourceProbe | null | undefined
+    return result && typeof result.text === 'string' ? result : null
   } catch {
     return null
   }

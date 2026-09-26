@@ -7,27 +7,25 @@ import { build, transformSync } from 'esbuild'
 
 export const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
 
-// 与 vite.config.ts 的 precompileRulesPlugin 一致：运行时预筛只用构建期写入的 __hints
-const viteConfig = readFileSync(path.join(repoRoot, 'vite.config.ts'), 'utf8')
-const HINT_MIN_LEN = Number(/const HINT_MIN_LEN = (\d+)/.exec(viteConfig)[1])
-const HINT_MAX_COUNT = Number(/const HINT_MAX_COUNT = (\d+)/.exec(viteConfig)[1])
-
-export const extractBuildHints = (patterns, isKeyword) => {
-  const candidates = []
-  for (const pattern of patterns) {
-    const text = String(pattern || '')
-    if (isKeyword) {
-      const lower = text.toLowerCase().trim()
-      if (lower.length >= HINT_MIN_LEN) candidates.push(lower)
-      continue
-    }
-    for (const segment of text.replace(/\\[bBdDsSwW]/g, ' ').split(/[\\^$.|?*+()[\]{}]/)) {
-      const lower = segment.toLowerCase().replace(/\s+/g, ' ').trim()
-      if (lower.length >= HINT_MIN_LEN) candidates.push(lower)
-    }
+const srcAliasPlugin = {
+  name: 'src-alias',
+  setup(pluginBuild) {
+    pluginBuild.onResolve({ filter: /^@\// }, args => ({ path: path.join(repoRoot, 'src', `${args.path.slice(2)}.ts`) }))
   }
-  return [...new Set(candidates)].sort((a, b) => b.length - a.length).slice(0, HINT_MAX_COUNT)
 }
+
+const importTs = file =>
+  import(
+    `data:text/javascript;base64,${Buffer.from(
+      transformSync(readFileSync(path.join(repoRoot, file), 'utf8'), { loader: 'ts', format: 'esm' }).code,
+      'utf8'
+    ).toString('base64')}`
+  )
+
+// 与 vite.config.ts 的 precompileRulesPlugin 共用 src/utils/rule-hints.ts：运行时预筛只用构建期写入的 __hints
+export const ruleHints = await importTs('src/utils/rule-hints.ts')
+
+export const extractBuildHints = (patterns, isKeyword) => ruleHints.extractRuleHints(patterns, isKeyword)
 
 const isPlainObject = value => Object.prototype.toString.call(value) === '[object Object]'
 
@@ -37,8 +35,17 @@ export const expandRules = (value, inherited = {}) => {
     return value.rules.flatMap(item => expandRules(item, { ...inherited, ...(value.defaults || {}) }))
   }
   if (!isPlainObject(value)) return [value]
-  const rule = { ...inherited, ...value }
-  return [Array.isArray(rule.patterns) ? { ...rule, __hints: extractBuildHints(rule.patterns, rule.matchType === 'keyword') } : rule]
+  const { __hints: handwritten, ...rule } = { ...inherited, ...value }
+  if (!Array.isArray(rule.patterns)) return [rule]
+  const { hints, legacyHints } = ruleHints.buildRuleHintFields(
+    rule.patterns,
+    rule.matchType === 'keyword',
+    value.matchType === 'keyword',
+    handwritten
+  )
+  // 旧门槛只留给没有 resourceHints 的规则
+  const keepLegacy = legacyHints.length && !rule.resourceHints?.length
+  return [{ ...rule, ...(hints.length ? { __hints: hints } : {}), ...(keepLegacy ? { __legacyHints: legacyHints } : {}) }]
 }
 
 export const readRuleFile = file => JSON.parse(readFileSync(path.join(repoRoot, 'public/rules', file), 'utf8'))
@@ -72,14 +79,7 @@ export const loadHeadersModule = async () => {
     format: 'esm',
     platform: 'neutral',
     logLevel: 'silent',
-    plugins: [
-      {
-        name: 'src-alias',
-        setup(pluginBuild) {
-          pluginBuild.onResolve({ filter: /^@\// }, args => ({ path: path.join(repoRoot, 'src', `${args.path.slice(2)}.ts`) }))
-        }
-      }
-    ]
+    plugins: [srcAliasPlugin]
   })
   return import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text, 'utf8').toString('base64')}`)
 }
@@ -97,19 +97,35 @@ export const detectHeaders = (headersModule, headerRules, headers, url = 'https:
     {}
   ).technologies
 
-// 规则命中需同时满足：构建期 hint 至少有一个出现在文本里，且某条正则匹配
-export const pageRuleMatches = (rule, text) =>
-  (!rule.__hints?.length || rule.__hints.some(hint => text.toLowerCase().includes(hint))) &&
-  (rule.patterns || []).some(pattern => new RegExp(pattern, rule.caseSensitive ? '' : 'i').test(text))
+// 规则命中需同时满足：构建期 hint 和旧版门槛都有一个出现在文本里，且某条正则匹配
+export const pageRuleMatches = (rule, text) => {
+  const lower = text.toLowerCase()
+  const passes = hints => !hints?.length || hints.some(hint => lower.includes(hint))
+  return (
+    passes(rule.__hints) &&
+    passes(rule.__legacyHints) &&
+    (rule.patterns || []).some(pattern => new RegExp(pattern, rule.caseSensitive ? '' : 'i').test(text))
+  )
+}
 
 let detectorSource = null
-const loadDetectorSource = () => {
+const loadDetectorSource = async () => {
   if (detectorSource) return detectorSource
   const source = readFileSync(path.join(repoRoot, 'src/injected/page-detector.ts'), 'utf8').replace(
     'export default __spResult',
     'globalThis.__spDone = __spResult'
   )
-  detectorSource = transformSync(source, { loader: 'ts', format: 'cjs', target: 'es2022' }).code
+  const result = await build({
+    stdin: { contents: source, loader: 'ts', resolveDir: path.join(repoRoot, 'src/injected'), sourcefile: 'page-detector.ts' },
+    bundle: true,
+    write: false,
+    format: 'iife',
+    platform: 'neutral',
+    target: 'es2022',
+    logLevel: 'silent',
+    plugins: [srcAliasPlugin]
+  })
+  detectorSource = result.outputFiles[0].text
   return detectorSource
 }
 
@@ -164,7 +180,7 @@ export const runPageDetector = async (pageRules, fixture) => {
   }
   context.globalThis = context
   vm.createContext(context)
-  vm.runInContext(loadDetectorSource(), context)
+  vm.runInContext(await loadDetectorSource(), context)
   const result = await context.__spDone
   return result.technologies
 }

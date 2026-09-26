@@ -6,7 +6,7 @@ import { buildEffectivePageRules, loadDetectorSettings, loadTechRules } from './
 import { scheduleBundleLicenseDetection } from './bundle-license'
 import { injectContentObserver } from './content-injector'
 import { withTabWriteLock } from './tab-write-lock'
-import { collectResourceHints, probePageResourceHints, selectPageDetectorRules } from './page-rule-filter'
+import { probeTabResources, selectPageDetectorRules } from './page-rule-filter'
 import { isDetectablePageUrl } from '@/utils/page-support'
 
 const activeDetectionTimers = new Map<number, ReturnType<typeof setTimeout>>()
@@ -101,25 +101,23 @@ export const runActivePageDetection = async (tabId: number, options: { force?: b
     if (!options.force) {
       const last = lastDetectionRunAt.get(tabId) || 0
       if (last && Date.now() - last < DETECTION_THROTTLE_MS) {
-        console.log('[SP detection] run skipped (throttle)', tabId, 'sinceLast', Date.now() - last + 'ms')
         return
       }
     }
     lastDetectionRunAt.set(tabId, Date.now())
-    console.log('[SP detection] run start', tabId, 'force:', Boolean(options.force))
     await injectContentObserver(tabId)
     // 这里不再预读 data —— page-detector 注入要 500ms+,期间其他 writer 会写过 storage;
     // 等 detector 跑完再统一 re-read 最新 data 再做合并写回
     const [rules, settings] = await Promise.all([loadTechRules(), loadDetectorSettings()])
     const pageRules = buildEffectivePageRules(rules.page || {}, settings)
-    const hintHits = await probePageResourceHints(tabId, collectResourceHints(rules.page || {}))
+    const resourceProbe = await probeTabResources(tabId)
     await chrome.scripting.executeScript({
       target: { tabId },
       world: 'MAIN',
       func: r => {
         ;(window as any).__SP_RULES__ = r
       },
-      args: [selectPageDetectorRules(pageRules, hintHits)]
+      args: [selectPageDetectorRules(pageRules, resourceProbe)]
     })
     const injection = await chrome.scripting.executeScript({
       target: { tabId },
@@ -182,10 +180,8 @@ export const scheduleActivePageDetection = (tabId: number, delay = 600) => {
   if (typeof tabId !== 'number' || tabId < 0) return
   const last = lastDetectionRunAt.get(tabId) || 0
   if (last && Date.now() - last < DETECTION_THROTTLE_MS) {
-    console.log('[SP detection] schedule skipped (throttle)', tabId, 'sinceLast', Date.now() - last + 'ms')
     return
   }
-  console.log('[SP detection] schedule', tabId, 'delay', delay + 'ms')
   clearActiveDetectionTimer(tabId)
   const timer = setTimeout(() => {
     activeDetectionTimers.delete(tabId)

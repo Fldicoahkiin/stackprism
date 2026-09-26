@@ -2,7 +2,13 @@ import { buildPopupCacheRecord } from './popup-cache'
 import { buildEffectivePageRules, loadDetectorSettings, loadTechRules } from './detector-settings'
 import { mergeTechnologyRecords, shortHeaderUrl } from './merge'
 import { getTabData, getTabSnapshot, updateBadgeForTab, writeTabData } from './tab-store'
-import { extractVersionFromBundleText, matchesCompiledRulePatterns, matchesRuleTextHints } from './rule-matcher'
+import {
+  createRuleListsScannerCache,
+  extractVersionFromBundleText,
+  matchesCompiledRulePatterns,
+  passesHintLookup,
+  passesResourceHintLookup
+} from './rule-matcher'
 import { withTabWriteLock } from './tab-write-lock'
 import { isDetectablePageUrl } from '@/utils/page-support'
 import { cleanTechnologyUrl } from '@/utils/url'
@@ -382,14 +388,18 @@ const scanScriptLicense = async (scriptUrl: string, budget: ScanBudget): Promise
   }
 }
 
+const getLicenseHintScanner = createRuleListsScannerCache()
+
 const detectTechnologiesFromLicenseText = (observations: ScriptLicenseObservation[], rules: any[]): any[] => {
   if (!Array.isArray(rules) || !rules.length || !observations.length) return []
 
   const technologies: any[] = []
+  const scanner = getLicenseHintScanner([rules])
   for (const observation of observations) {
-    const lowerText = observation.text.toLowerCase()
+    // 版权注释文本最长 18 万字符，先一次扫出出现过的 hint，没有 hint 的规则不再跑正则
+    const lookup = scanner.scan(observation.text.toLowerCase())
     for (const rule of rules) {
-      if (!rule?.name || !matchesRuleTextHints(rule, lowerText)) continue
+      if (!rule?.name || !passesResourceHintLookup(rule, lookup) || !passesHintLookup(rule, lookup)) continue
       if (!matchesCompiledRulePatterns(rule, observation.text)) continue
       const version = extractVersionFromBundleText(rule, observation.text)
       const tech: any = {

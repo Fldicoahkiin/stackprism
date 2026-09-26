@@ -14,7 +14,7 @@
 
 项目主体是 Vite 5 + Vue 3 + TypeScript + `@crxjs/vite-plugin` 2.x。后台脚本是 Manifest V3 ESM service worker，包管理器用 pnpm。
 
-规则放在 `public/rules/` 下，按页面规则、响应头规则、WordPress / Drupal 生态等方向拆成多个 JSON 文件。构建时会预处理规则，注入 `__hints` / `__keywordCombined` 这类用于匹配加速的字段。
+规则放在 `public/rules/` 下，按页面规则、响应头规则、WordPress / Drupal 生态等方向拆成多个 JSON 文件。构建时会预处理规则，注入 `__hints` / `__legacyHints` / `__keywordCombined` 这类用于匹配加速的字段。
 
 ## 开发常用命令
 

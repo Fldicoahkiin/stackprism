@@ -123,16 +123,18 @@ background 端 `dynamic-snapshot.ts`：
 
 ```text
 detectFromXxx(snapshot, rules)
+  scanner.scan(lowerText)                       ─ 所有规则的 hint 建一个索引，文本只扫一遍
   for (const rule of rules):
-    1. matchesRuleTextHints(rule, context)      ─ 业务侧 resourceHints 预过滤
-    2. passesRulePrefilter(rule, lowerTexts)    ─ 自动 hint 预过滤（命中即可继续）
+    1. passesResourceHintLookup(rule, lookup)   ─ 业务侧 resourceHints 门槛
+    2. passesHintLookup(rule, lookup)           ─ 必需字面量预筛（只跳过不可能命中的规则）
+       passesLegacyHintLookup(rule, lookup)     ─ 旧版门槛（__legacyHints，保证结果不变）
     3. matchesCompiledRulePatterns(rule, text)  ─ 跑实际正则 / keyword 合并正则
        ├─ keyword 走 getCompiledCombinedPattern：缓存的合并正则一次匹配
        └─ regex 走 getCompiledRulePatterns.some：缓存的 RegExp[] 逐个 test
     4. 命中：add(category, name, confidence, evidence)
 ```
 
-WeakMap 缓存使每条 rule 的正则 + hints 编译只跑一次，整个 rules 数组重复使用。
+WeakMap 缓存使每条 rule 的正则 + hints 编译只跑一次；hint 索引按规则列表缓存，规则不变就复用。
 
 ## badge 数字
 

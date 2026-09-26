@@ -1,7 +1,15 @@
 import { injectContentObserverIntoOpenTabs } from './content-injector'
 import { clearBadge, clearTabSession, forgetBadgeState } from './tab-store'
 import { clearDynamicSnapshotTimer, clearPendingDynamicSnapshot } from './dynamic-snapshot'
-import { buildHeaderRecord, dedupeApiRecords, hasEquivalentHeaderRecord, mergeHeaderRecords, shouldMergeHeaderRecords } from './headers'
+import { buildHeaderRecord, mergeHeaderRecords, shouldMergeHeaderRecords } from './headers'
+import {
+  clearPendingHeaderRecords,
+  forgetTabHeaderState,
+  isRecordedRequestType,
+  queueHeaderRecord,
+  rememberTabUrl,
+  resolveTabUrl
+} from './header-records'
 import {
   clearActiveDetectionTimer,
   clearDetectionThrottle,
@@ -9,7 +17,7 @@ import {
   saveTabDataAndBadge,
   scheduleActivePageDetection
 } from './detection'
-import { getTabData, getTabSnapshot } from './tab-store'
+import { getTabData } from './tab-store'
 import { SETTINGS_STORAGE_KEY, applyDetectorSettingsUpdate, loadDetectorSettings, loadTechRules } from './detector-settings'
 import { registerMessageRouter } from './message-router'
 import { clearBundleLicenseTimer } from './bundle-license'
@@ -18,7 +26,6 @@ import { isDetectablePageUrl, isObservableRequestUrl } from '@/utils/page-suppor
 import { clearLegacySessionKeys } from '@/utils/browser-compat'
 
 registerMessageRouter()
-refreshAllBadges().catch(() => {})
 
 chrome.runtime.onInstalled.addListener(() => {
   clearLegacySessionKeys().catch(() => {})
@@ -38,6 +45,7 @@ chrome.tabs.onRemoved.addListener(tabId => {
   clearPendingDynamicSnapshot(tabId)
   clearTabSession(tabId)
   forgetBadgeState(tabId)
+  forgetTabHeaderState(tabId)
 })
 
 const clearTabDetectionState = (tabId: number) => {
@@ -47,6 +55,7 @@ const clearTabDetectionState = (tabId: number) => {
   clearDynamicSnapshotTimer(tabId)
   clearPendingDynamicSnapshot(tabId)
   clearTabWriteLock(tabId)
+  clearPendingHeaderRecords(tabId)
   clearBadge(tabId)
   clearTabSession(tabId).catch(() => {})
 }
@@ -69,13 +78,13 @@ const clearCrossOriginDynamicSnapshot = (data: any, nextUrl: string) => {
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   const url = changeInfo.url || tab.url || ''
+  rememberTabUrl(tabId, url)
   if (url && !isDetectablePageUrl(url)) {
     clearTabDetectionState(tabId)
     return
   }
 
   if (changeInfo.status === 'loading') {
-    console.log('[SP detection] onUpdated loading', tabId, 'url', url)
     clearActiveDetectionTimer(tabId)
     clearDynamicSnapshotTimer(tabId)
     clearPendingDynamicSnapshot(tabId)
@@ -84,7 +93,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 
   if (changeInfo.status === 'complete') {
-    console.log('[SP detection] onUpdated complete', tabId, 'url', url)
     if (isDetectablePageUrl(url)) {
       scheduleActivePageDetection(tabId, 600)
     } else {
@@ -95,7 +103,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 chrome.webNavigation.onCommitted.addListener(details => {
   if (details.frameId !== 0) return
-  console.log('[SP detection] webNav committed', details.tabId, 'transition:', details.transitionType, details.url)
   clearDetectionThrottle(details.tabId)
 })
 
@@ -106,45 +113,37 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 })
 
-const API_REQUEST_TYPES = new Set(['xmlhttprequest', 'fetch', 'websocket'])
-
-// 只有主文档、iframe 和接口请求会进入记录；图片、媒体、脚本等请求直接跳过，避免每个请求都整份读写存储
-const isRecordedRequestType = (type: string): boolean => type === 'main_frame' || type === 'sub_frame' || API_REQUEST_TYPES.has(type)
-
 chrome.webRequest.onHeadersReceived.addListener(
   details => {
     if (details.tabId < 0 || !details.responseHeaders) return
     if (!isObservableRequestUrl(details.url)) return
     if (!isRecordedRequestType(details.type as string)) return
 
-    Promise.all([loadTechRules(), loadDetectorSettings(), getTabSnapshot(details.tabId)])
-      .then(async ([rules, settings, tab]) => {
-        if (details.type === 'main_frame' && !isDetectablePageUrl(details.url)) {
-          clearTabDetectionState(details.tabId)
-          return
-        }
-        if (details.type !== 'main_frame' && !isDetectablePageUrl(tab.url)) {
-          clearTabDetectionState(details.tabId)
+    const tabId = details.tabId
+    const type = details.type as string
+    if (type === 'main_frame') rememberTabUrl(tabId, details.url)
+    Promise.all([loadTechRules(), loadDetectorSettings(), type === 'main_frame' ? details.url : resolveTabUrl(tabId)])
+      .then(async ([rules, settings, tabUrl]) => {
+        if (!isDetectablePageUrl(tabUrl)) {
+          clearTabDetectionState(tabId)
           return
         }
         const record = buildHeaderRecord(details, rules.headers || {}, settings)
+        if (type !== 'main_frame') {
+          queueHeaderRecord(tabId, type, record)
+          return
+        }
+        // 新的主文档到了，上一页还没写入的接口记录作废
+        clearPendingHeaderRecords(tabId)
         // 进 per-tab 锁:concurrent webRequest 事件不能并发 read-modify-write,否则会互相覆盖彼此的 apis / frames / main
-        await withTabWriteLock(details.tabId, async () => {
-          const latest = (await getTabData(details.tabId)) || {}
-          if (details.type === 'main_frame') {
-            clearCrossOriginDynamicSnapshot(latest, details.url)
-            latest.main = shouldMergeHeaderRecords(latest.main, record) ? mergeHeaderRecords(latest.main, record) : record
-            latest.apis = []
-            latest.frames = []
-          } else if (API_REQUEST_TYPES.has(details.type as string)) {
-            if (hasEquivalentHeaderRecord(latest.apis, record)) return
-            latest.apis = dedupeApiRecords([record, ...(latest.apis || [])])
-          } else if (details.type === 'sub_frame') {
-            if (hasEquivalentHeaderRecord(latest.frames, record)) return
-            latest.frames = dedupeApiRecords([record, ...(latest.frames || [])]).slice(0, 10)
-          }
+        await withTabWriteLock(tabId, async () => {
+          const latest = (await getTabData(tabId)) || {}
+          clearCrossOriginDynamicSnapshot(latest, details.url)
+          latest.main = shouldMergeHeaderRecords(latest.main, record) ? mergeHeaderRecords(latest.main, record) : record
+          latest.apis = []
+          latest.frames = []
           latest.updatedAt = Date.now()
-          await saveTabDataAndBadge(details.tabId, latest, settings)
+          await saveTabDataAndBadge(tabId, latest, settings)
         })
       })
       .catch(() => {})

@@ -94,12 +94,13 @@
 
 build 阶段 `vite.config.ts` 里的 `precompileRulesPlugin` 给每条 leaf rule 注入：
 
-| 字段                | 来自                                                                       |
-| ------------------- | -------------------------------------------------------------------------- |
-| `__hints`           | 从 patterns 字面段抽出的预过滤指纹（≥4 字符、最多 3 条、按长度倒序）       |
-| `__keywordCombined` | matchType 为 keyword 时把所有 patterns escape 后用 `\|` 拼成的合并正则源码 |
+| 字段                | 来自                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `__hints`           | 正则的必需字面量集合（`src/utils/rule-hints.ts`）：pattern 能命中的文本一定含其中一个，只用来跳过不可能命中的规则，不改变结果 |
+| `__legacyHints`     | 1.3.79 及以前的预筛门槛（最长的 3 段字面量），只写给比 `__hints` 更严、且没有 `resourceHints` 的规则，保证识别结果不变        |
+| `__keywordCombined` | matchType 为 keyword 时把所有 patterns escape 后用 `\|` 拼成的合并正则源码                                                    |
 
-运行时 `getRuleAutoHints(rule)` 与 `getCompiledCombinedPattern(rule)` 优先读这两个字段，缺失才回退到运行时计算，省去 service worker 唤醒后的初始化开销。
+规则文件里手写的 `__hints` 会被当作这条规则的旧门槛。运行时 `getRuleAutoHints(rule)` 与 `getCompiledCombinedPattern(rule)` 优先读这些字段，缺失才回退到运行时计算（自定义规则只算必需字面量，没有旧门槛）。
 
 ## 规则文件清单
 

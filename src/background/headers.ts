@@ -3,10 +3,16 @@ import {
   createCollector,
   filterCustomRulesForTarget,
   getCompiledRulePatterns,
+  createRuleListsScannerCache,
+  createTextHintLookup,
   lower,
   matchesHeaderPatterns,
-  passesRulePrefilter
+  passesHintLookup,
+  passesLegacyHintLookup
 } from './rule-matcher'
+import type { HintLookup } from '@/utils/rule-hints'
+
+const getHeaderHintScanner = createRuleListsScannerCache()
 
 const MAX_API_RECORDS = 30
 
@@ -61,12 +67,12 @@ const applyHeaderRuleList = (
   headerBlob: string,
   sourceLabel: string,
   evidencePrefix: (rule: any) => string = () => '',
-  prefilterBlob: string = lower(headerBlob)
+  lookup: HintLookup = createTextHintLookup(lower(headerBlob))
 ) => {
   if (!Array.isArray(rules) || !rules.length) return
 
   for (const rule of rules) {
-    if (!passesRulePrefilter(rule, prefilterBlob)) continue
+    if (!passesHintLookup(rule, lookup) || !passesLegacyHintLookup(rule, lookup)) continue
     const matched = getCompiledRulePatterns(rule, rule.patterns).some(pattern => {
       pattern.lastIndex = 0
       return pattern.test(headerBlob)
@@ -201,13 +207,20 @@ const detectFromHeaders = (headers: Record<string, string>, url: string, headerR
       .map(([name, value]) => `${name}: ${value}`)
       .join('\n') + `\nurl: ${url || ''}`
   const lowerHeaderBlob = lower(headerBlob)
+  // 所有响应头规则的 hint 一次扫完，逐条规则只查表
+  const lookup = getHeaderHintScanner([
+    headerRules.headerPatterns,
+    headerRules.cdnProviders,
+    headerRules.languages,
+    headerRules.websitePrograms
+  ]).scan(lowerHeaderBlob)
 
   applyHeaderValueRuleList(add, headerRules.serverProducts, server, headers.server, 'server')
   applyHeaderValueRuleList(add, headerRules.poweredByProducts, poweredBy, headers['x-powered-by'], 'x-powered-by')
   // server: nginx/1.29.8 / x-powered-by: PHP/8.2.10 这种带版本号的,把版本附到对应 tech 上
   attachServerVersion(technologies, headers.server, 'server')
   attachServerVersion(technologies, headers['x-powered-by'], 'x-powered-by')
-  applyHeaderRuleList(add, headerRules.headerPatterns, '其他库', headerBlob, 'JSON 响应头规则', () => '', lowerHeaderBlob)
+  applyHeaderRuleList(add, headerRules.headerPatterns, '其他库', headerBlob, 'JSON 响应头规则', () => '', lookup)
 
   if (
     matchesHeaderPatterns(headerRules.unknownCdnPatterns, lowerHeaderBlob) &&
@@ -216,8 +229,8 @@ const detectFromHeaders = (headers: Record<string, string>, url: string, headerR
     add('CDN / 托管', '未知 / 自定义 CDN', '低', '响应头包含 CDN 或 Edge 缓存线索')
   }
 
-  applyHeaderRuleList(add, headerRules.cdnProviders, 'CDN / 托管', headerBlob, 'JSON CDN 响应头规则', () => '', lowerHeaderBlob)
-  applyHeaderRuleList(add, headerRules.languages, '开发语言 / 运行时', headerBlob, 'JSON 语言响应头规则', () => '', lowerHeaderBlob)
+  applyHeaderRuleList(add, headerRules.cdnProviders, 'CDN / 托管', headerBlob, 'JSON CDN 响应头规则', () => '', lookup)
+  applyHeaderRuleList(add, headerRules.languages, '开发语言 / 运行时', headerBlob, 'JSON 语言响应头规则', () => '', lookup)
   applyHeaderRuleList(
     add,
     headerRules.websitePrograms,
@@ -225,7 +238,7 @@ const detectFromHeaders = (headers: Record<string, string>, url: string, headerR
     headerBlob,
     'JSON 网站程序响应头规则',
     rule => (rule.kind ? `${rule.kind}：` : ''),
-    lowerHeaderBlob
+    lookup
   )
   applyHeaderRuleList(
     add,
@@ -234,7 +247,7 @@ const detectFromHeaders = (headers: Record<string, string>, url: string, headerR
     headerBlob,
     '自定义响应头规则',
     rule => (rule.kind ? `${rule.kind}：` : ''),
-    lowerHeaderBlob
+    lookup
   )
 
   markSpoofedHeaderDetections(technologies, headers)

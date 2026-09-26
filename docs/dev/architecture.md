@@ -17,7 +17,7 @@ stackprism/
 │  │  ├─ dynamic-snapshot.ts     # 动态快照防抖处理
 │  │  ├─ tech-links.ts           # tech-links.json 懒加载
 │  │  ├─ rule-loader.ts          # 规则 JSON 的加载与合并
-│  │  ├─ rule-matcher.ts         # 编译缓存 + auto hint 预过滤
+│  │  ├─ rule-matcher.ts         # 编译缓存 + hint 索引预筛
 │  │  ├─ detector-settings.ts    # 设置 / 规则缓存
 │  │  ├─ content-injector.ts     # 启动时给已开标签页注入 content script
 │  │  └─ merge.ts                # 技术列表合并 / 去重 / suppress 规则
@@ -148,7 +148,7 @@ chrome.scripting.executeScript({
 
 build 期还有两个 vite plugin 处理这些 JSON：
 
-1. `precompileRulesPlugin`：递归走每个规则 JSON，给每条 leaf rule 注入 `__hints`（自动从 patterns 提取的关键词）+ `__keywordCombined`（keyword 类型规则的合并正则源码）
+1. `precompileRulesPlugin`：递归走每个规则 JSON，给每条 leaf rule 注入 `__hints`（正则的必需字面量）、`__legacyHints`（旧版预筛门槛，只写给需要的规则）和 `__keywordCombined`（keyword 类型规则的合并正则源码）
 2. `minifyJsonAssets`：把所有 JSON 用 `JSON.stringify(parsed)` 重写一遍消除缩进 / 空白
 
 ## 状态管理

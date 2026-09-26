@@ -1,10 +1,25 @@
 import type { RuleConfig } from '@/types/rules'
 
 const RULE_INDEX_PATH = 'rules/index.json'
+const EMPTY_DEFAULTS = Object.freeze({})
 
-const isPlainObject = (value: unknown): boolean => Object.prototype.toString.call(value) === '[object Object]'
+// 规则 JSON 都是 JSON.parse 出来的普通对象，按原型判断比 Object.prototype.toString 快得多
+const isPlainObject = (value: unknown): value is Record<string, any> => {
+  if (value === null || typeof value !== 'object') return false
+  const proto = Object.getPrototypeOf(value)
+  return proto === Object.prototype || proto === null
+}
 
 const isRuleGroup = (value: any): boolean => isPlainObject(value) && Array.isArray(value.rules)
+
+// patterns / resourceHints / globals 这类纯字符串数组占了规则的大头，原样复用，不再逐项复制
+const hasNestedObject = (items: any[]): boolean => {
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index]
+    if (item !== null && typeof item === 'object') return true
+  }
+  return false
+}
 
 const normalizeRuleObject = (object: any) => {
   const result: any = {}
@@ -14,41 +29,42 @@ const normalizeRuleObject = (object: any) => {
   return result
 }
 
-const expandRuleGroup = (group: any, inheritedDefaults: any) => {
+const expandRuleGroupInto = (out: any[], group: any, inheritedDefaults: any) => {
   const defaults = {
     ...inheritedDefaults,
     ...(isPlainObject(group.defaults) ? group.defaults : {}),
     ...(isPlainObject(group.$defaults) ? group.$defaults : {})
   }
-  const out: any[] = []
   for (const rule of group.rules) {
-    const items = normalizeRuleArrayItem(rule, defaults)
-    for (let i = 0; i < items.length; i++) out.push(items[i])
+    pushRuleArrayItem(out, rule, defaults)
   }
-  return out
 }
 
-const normalizeRuleArrayItem = (item: any, defaults: any): any[] => {
+const pushRuleArrayItem = (out: any[], item: any, defaults: any) => {
   if (isRuleGroup(item)) {
-    return expandRuleGroup(item, defaults)
+    expandRuleGroupInto(out, item, defaults)
+    return
   }
   if (!isPlainObject(item)) {
-    return [item]
+    out.push(item)
+    return
   }
-  return [{ ...defaults, ...normalizeRuleObject(item) }]
+  out.push({ ...defaults, ...normalizeRuleObject(item) })
 }
 
 const normalizeRuleValue = (value: any): any => {
   if (Array.isArray(value)) {
+    if (!hasNestedObject(value)) return value
     const out: any[] = []
     for (const item of value) {
-      const items = normalizeRuleArrayItem(item, {})
-      for (let i = 0; i < items.length; i++) out.push(items[i])
+      pushRuleArrayItem(out, item, EMPTY_DEFAULTS)
     }
     return out
   }
   if (isRuleGroup(value)) {
-    return expandRuleGroup(value, {})
+    const out: any[] = []
+    expandRuleGroupInto(out, value, EMPTY_DEFAULTS)
+    return out
   }
   if (isPlainObject(value)) {
     const result: any = {}

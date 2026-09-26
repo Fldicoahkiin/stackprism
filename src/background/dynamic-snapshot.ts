@@ -4,10 +4,12 @@ import { isDetectablePageUrl } from '@/utils/page-support'
 import { mergeTechnologyRecords, normalizeDynamicFallbackTechName, shortHeaderUrl } from './merge'
 import {
   createCollector,
+  createRuleListsScannerCache,
   filterCustomRulesForTarget,
   matchesCompiledRulePatterns,
-  matchesRuleTextHints,
-  passesRulePrefilter
+  passesHintLookup,
+  passesLegacyHintLookup,
+  passesResourceHintLookup
 } from './rule-matcher'
 import { clearBadge, clearTabSession, getTabData, getTabSnapshot } from './tab-store'
 import { saveTabDataAndBadge } from './detection'
@@ -17,6 +19,27 @@ import { withTabWriteLock } from './tab-write-lock'
 
 const DYNAMIC_FAST_LOOKUP_RULE_MIN = 1000
 const DYNAMIC_SNAPSHOT_PROCESS_DELAY = 400
+
+// 动态快照用到的内置规则分组；自定义规则每次重新筛选，不进扫描器
+const DYNAMIC_RULE_KEYS = [
+  'dynamicTechnologies',
+  'frontendFrameworks',
+  'uiFrameworks',
+  'frontendExtra',
+  'buildRuntime',
+  'cdnProviders',
+  'websitePrograms',
+  'cmsThemes',
+  'probes',
+  'languages',
+  'backendHints',
+  'saasServices',
+  'thirdPartyLogins',
+  'paymentSystems',
+  'analyticsProviders',
+  'feeds'
+]
+const getDynamicHintScanner = createRuleListsScannerCache()
 
 const dynamicFrontendRuleKeyCache = new WeakMap()
 const dynamicFrontendHintsFlagCache = new WeakMap()
@@ -460,7 +483,8 @@ const matchDynamicFrontendLookup = (rule, context, defaultCategory) => {
   return ''
 }
 
-const buildDynamicMatchContext = (snapshot, text) => {
+// 所有规则的 hint 在整段文本里只扫一遍；只看资源的规则用资源文本，第一次用到时再扫
+const buildDynamicMatchContext = (snapshot, text, pageRules) => {
   const resourceUrls = [
     snapshot.url,
     ...(snapshot.resources || []),
@@ -469,10 +493,15 @@ const buildDynamicMatchContext = (snapshot, text) => {
     ...(snapshot.iframes || [])
   ]
   const uniqueResourceUrls = [...new Set(resourceUrls.map(url => String(url || '')).filter(Boolean))]
+  const resourceText = uniqueResourceUrls.join('\n').toLowerCase()
+  const scanner = getDynamicHintScanner(DYNAMIC_RULE_KEYS.map(key => pageRules[key]))
+  let resourceLookup = null
   return {
     text,
     lowerText: text,
-    resourceText: uniqueResourceUrls.join('\n').toLowerCase(),
+    resourceText,
+    lookup: scanner.scan(text),
+    getResourceLookup: () => (resourceLookup ??= scanner.scan(resourceText)),
     frontendResourceNames: collectDynamicFrontendResourceNames(uniqueResourceUrls)
   }
 }
@@ -538,15 +567,11 @@ const detectDynamicCmsThemesAndSource = (add, text, extractors) => {
 
 // ----- 规则应用 -----
 
-const applyDynamicRuleList = (add, rules, contextOrText, sourceLabel, defaultCategory, evidencePrefix = () => '') => {
+const applyDynamicRuleList = (add, rules, context, sourceLabel, defaultCategory, evidencePrefix = () => '') => {
   if (!Array.isArray(rules) || !rules.length) {
     return
   }
 
-  const context =
-    typeof contextOrText === 'string'
-      ? { text: contextOrText, lowerText: contextOrText.toLowerCase(), resourceText: contextOrText.toLowerCase() }
-      : contextOrText || {}
   const useFrontendLookup = shouldUseDynamicFrontendLookup(rules, defaultCategory)
 
   for (const rule of rules) {
@@ -565,18 +590,20 @@ const applyDynamicRuleList = (add, rules, contextOrText, sourceLabel, defaultCat
       continue
     }
 
-    if (!matchesRuleTextHints(rule, context)) {
-      continue
-    }
     const resourceScoped =
       rule?.resourceOnly === true ||
       (Array.isArray(rule?.matchIn) &&
         rule.matchIn.length > 0 &&
         rule.matchIn.every((item: string) => ['resources', 'url', 'dynamic'].includes(item)))
-    const matchText = resourceScoped ? context.resourceText || context.lowerText || '' : context.lowerText || context.text || ''
-    if (!passesRulePrefilter(rule, matchText)) {
+    // resourceHints 看整段文本；必需字面量和旧门槛看这条规则实际匹配的文本
+    if (!passesResourceHintLookup(rule, context.lookup)) {
       continue
     }
+    const lookup = resourceScoped ? context.getResourceLookup() : context.lookup
+    if (!passesHintLookup(rule, lookup) || !passesLegacyHintLookup(rule, lookup)) {
+      continue
+    }
+    const matchText = resourceScoped ? context.resourceText || context.lowerText || '' : context.lowerText || context.text || ''
     const matched = matchesCompiledRulePatterns(rule, matchText)
     if (!matched) {
       continue
@@ -602,7 +629,7 @@ const detectFromDynamicSnapshot = (snapshot, pageRules) => {
   ]
     .join('\n')
     .toLowerCase()
-  const context = buildDynamicMatchContext(snapshot, text)
+  const context = buildDynamicMatchContext(snapshot, text, pageRules)
 
   applyDynamicRuleList(add, pageRules.dynamicTechnologies, context, 'JSON 动态技术规则')
   applyDynamicRuleList(add, pageRules.frontendFrameworks, context, 'JSON 前端框架动态规则', '前端框架')

@@ -1,3 +1,5 @@
+import { createHintScanner, extractRuleHints, type HintLookup, type HintScanner } from '@/utils/rule-hints'
+
 const compiledRulePatternCache = new WeakMap<object, { source: unknown; compiled: RegExp[] }>()
 const compiledCombinedPatternCache = new WeakMap<object, { source: unknown; compiled: RegExp | null }>()
 const autoHintCache = new WeakMap<object, string[]>()
@@ -78,139 +80,73 @@ export const getCompiledCombinedPattern = (rule: any, patterns: unknown): RegExp
   return compiled
 }
 
-const HINT_MIN_LEN = 4
-const HINT_MAX_COUNT = 5
-const REGEX_LITERAL_SPLIT = /[\\^$.|?*+()[\]{}]/
-const REGEX_CONTROL_ESCAPE = /\\[bBdDsSwW]/g
-
-const GENERIC_HINT_PARTS = new Set([
-  'api',
-  'asset',
-  'assets',
-  'cache',
-  'cdn',
-  'common',
-  'content',
-  'css',
-  'data',
-  'file',
-  'files',
-  'image',
-  'images',
-  'img',
-  'js',
-  'plugin',
-  'plugins',
-  'script',
-  'scripts',
-  'source',
-  'static',
-  'style',
-  'styles',
-  'template',
-  'theme',
-  'themes',
-  'url',
-  'version'
-])
-
-const normalizeHintCandidate = (value: string): string =>
-  value
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .replace(/^[^a-z0-9\u4e00-\u9fa5]+|[^a-z0-9\u4e00-\u9fa5]+$/g, '')
-    .trim()
-
-const getRuleNameTokens = (rule: any): string[] => {
-  const text = `${rule?.name || ''} ${rule?.kind || ''}`.toLowerCase()
-  const tokens = text
-    .split(/[^a-z0-9\u4e00-\u9fa5]+/)
-    .map(token => token.trim())
-    .filter(token => token.length >= 3 && !GENERIC_HINT_PARTS.has(token))
-
-  if (/discuz/i.test(text)) tokens.push('discuz')
-  if (/phpbb/i.test(text)) tokens.push('phpbb')
-  if (/vbulletin/i.test(text)) tokens.push('vbulletin')
-  if (/xenforo/i.test(text)) tokens.push('xenforo')
-  if (/mediawiki/i.test(text)) tokens.push('mediawiki')
-  if (/typecho/i.test(text)) tokens.push('typecho')
-
-  return [...new Set(tokens)]
-}
-
-const scoreHintCandidate = (candidate: string, ruleTokens: string[]): number => {
-  const parts = candidate.split(/[\/._\-\s:=%]+/).filter(Boolean)
-  const hasRuleToken = ruleTokens.some(token => candidate.includes(token))
-  const genericPartCount = parts.filter(part => GENERIC_HINT_PARTS.has(part)).length
-  let score = Math.min(candidate.length, 32)
-
-  if (hasRuleToken) score += 90
-  if (/[_-]/.test(candidate)) score += 14
-  if (/[.]/.test(candidate)) score += 8
-  if (/\d/.test(candidate) && /[a-z]/.test(candidate)) score += 6
-  if (candidate.includes('/')) score += hasRuleToken ? 4 : -8
-  if (parts.length && genericPartCount === parts.length) score -= 80
-  else score -= genericPartCount * 12
-  if (/^(?:content|static|assets|data|source|template|common)(?:[\/:=]|$)/.test(candidate) && !hasRuleToken) score -= 24
-
-  return score
-}
-
-const extractHintCandidates = (rule: any): string[] => {
-  const patterns = Array.isArray(rule?.patterns) ? rule.patterns : []
-  if (!patterns.length) return []
-  const isKeyword = rule.matchType === 'keyword'
-  const candidates: string[] = []
-
-  for (const pattern of patterns) {
-    const text = String(pattern || '')
-    if (!text) continue
-    if (isKeyword) {
-      const lower = text.toLowerCase().trim()
-      if (lower.length >= HINT_MIN_LEN) candidates.push(lower)
-      continue
-    }
-    for (const segment of text.replace(REGEX_CONTROL_ESCAPE, ' ').split(REGEX_LITERAL_SPLIT)) {
-      const lower = normalizeHintCandidate(segment)
-      if (lower.length >= HINT_MIN_LEN) candidates.push(lower)
-    }
-  }
-  return candidates
-}
-
+// 没有构建期 __hints 的规则（主要是用户自定义规则）运行时现算一次必需字面量集合
 export const getRuleAutoHints = (rule: any): string[] => {
   if (!rule || typeof rule !== 'object') return []
-  if (Array.isArray(rule.__hints) && rule.__hints.length) {
-    autoHintCache.set(rule, rule.__hints)
-    return rule.__hints
-  }
+  if (Array.isArray(rule.__hints) && rule.__hints.length) return rule.__hints
   const cached = autoHintCache.get(rule)
   if (cached) return cached
-  const candidates = extractHintCandidates(rule)
-  if (!candidates.length) {
-    autoHintCache.set(rule, [])
-    return []
-  }
-  const ruleTokens = getRuleNameTokens(rule)
-  const unique = [...new Set(candidates)]
-    .sort((a, b) => scoreHintCandidate(b, ruleTokens) - scoreHintCandidate(a, ruleTokens) || b.length - a.length)
-    .slice(0, HINT_MAX_COUNT)
-  autoHintCache.set(rule, unique)
-  return unique
+  const hints = extractRuleHints(rule.patterns, rule.matchType === 'keyword')
+  autoHintCache.set(rule, hints)
+  return hints
 }
 
-export const passesRulePrefilter = (rule: any, ...lowerTexts: string[]): boolean => {
-  if (!rule) return true
-  if (Array.isArray(rule.resourceHints) && rule.resourceHints.length) return true
-  const hints = getRuleAutoHints(rule)
-  if (!hints.length) return true
-  for (const hint of hints) {
-    for (const text of lowerTexts) {
-      if (text && text.includes(hint)) return true
-    }
-  }
-  return false
+const resourceHintCache = new WeakMap<object, string[]>()
+
+export const getRuleResourceHints = (rule: any): string[] => {
+  if (!rule || typeof rule !== 'object' || !Array.isArray(rule.resourceHints)) return []
+  const cached = resourceHintCache.get(rule)
+  if (cached) return cached
+  const hints: string[] = rule.resourceHints.map((hint: unknown) => String(hint || '').toLowerCase()).filter(Boolean)
+  resourceHintCache.set(rule, hints)
+  return hints
 }
+
+// resourceHints 是规则自己声明的门槛：一个都不在文本里就不跑
+export const passesResourceHintLookup = (rule: any, lookup: HintLookup): boolean => {
+  const hints = getRuleResourceHints(rule)
+  return !hints.length || hints.some(lookup)
+}
+
+// 必需字面量预筛：正则能命中时文本里一定有其中一个，只影响速度不影响结果
+export const passesHintLookup = (rule: any, lookup: HintLookup): boolean => {
+  const hints = getRuleAutoHints(rule)
+  return !hints.length || hints.some(lookup)
+}
+
+// 旧版预筛门槛（见 utils/rule-hints）：构建期只给旧门槛比健全 hint 更严、且没有 resourceHints 的规则写 __legacyHints
+export const passesLegacyHintLookup = (rule: any, lookup: HintLookup): boolean => {
+  const legacy = rule?.__legacyHints
+  return !Array.isArray(legacy) || !legacy.length || legacy.some(lookup)
+}
+
+const allRuleHints = (rule: any): string[] => [
+  ...getRuleResourceHints(rule),
+  ...getRuleAutoHints(rule),
+  ...(Array.isArray(rule?.__legacyHints) ? rule.__legacyHints : [])
+]
+
+// 同一批规则列表共用一个 hint 扫描器：列表引用不变（规则只在 SW 启动时加载一次）就复用上次建好的
+export const createRuleListsScannerCache = (hintsOf: (rule: any) => string[] = allRuleHints) => {
+  let lastLists: unknown[] = []
+  let lastScanner: HintScanner | null = null
+  return (lists: unknown[]): HintScanner => {
+    if (lastScanner && lastLists.length === lists.length && lastLists.every((list, index) => list === lists[index])) {
+      return lastScanner
+    }
+    const hints: string[] = []
+    for (const list of lists) {
+      if (!Array.isArray(list)) continue
+      for (const rule of list) hints.push(...hintsOf(rule))
+    }
+    lastLists = lists
+    lastScanner = createHintScanner(hints)
+    return lastScanner
+  }
+}
+
+// 自定义规则等没进扫描器的 hint 也能查：直接在文本里找
+export const createTextHintLookup = (lowerText: string): HintLookup => createHintScanner([]).scan(lowerText)
 
 export const matchesCompiledRulePatterns = (rule: any, text: string): boolean => {
   if (!rule || !Array.isArray(rule.patterns) || !rule.patterns.length) {
@@ -317,30 +253,6 @@ export const matchesHeaderPatterns = (patterns: unknown, text: string, rule: any
   return getCompiledRulePatterns(rule, patterns).some(pattern => {
     pattern.lastIndex = 0
     return pattern.test(text)
-  })
-}
-
-// 同一个匹配上下文里 hint 的命中结果只算一次：动态快照要跑上万条规则，resourceHints 大量重复
-const contextHintMemo = new WeakMap<object, Map<string, boolean>>()
-
-export const matchesRuleTextHints = (rule: any, contextOrText: any): boolean => {
-  if (!Array.isArray(rule.resourceHints) || !rule.resourceHints.length) {
-    return true
-  }
-  if (typeof contextOrText === 'string' || !contextOrText) {
-    const value = String(contextOrText || '').toLowerCase()
-    return rule.resourceHints.some((hint: string) => value.includes(String(hint || '').toLowerCase()))
-  }
-  const value = contextOrText.lowerText || String(contextOrText.text || '').toLowerCase()
-  const memo = contextHintMemo.get(contextOrText) || new Map<string, boolean>()
-  contextHintMemo.set(contextOrText, memo)
-  return rule.resourceHints.some((hint: string) => {
-    const key = String(hint || '').toLowerCase()
-    const cached = memo.get(key)
-    if (cached !== undefined) return cached
-    const hit = value.includes(key)
-    memo.set(key, hit)
-    return hit
   })
 }
 

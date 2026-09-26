@@ -11,7 +11,7 @@ pnpm run build
 
 1. `pnpm run build:injected`（`build-scripts/build-injected.mjs`）：esbuild 把 `src/injected/page-detector.ts` 与 `page-source-search.ts` 各编译成一个独立 IIFE 文件，输出到 `public/injected/`
 2. `vite build`（`@crxjs/vite-plugin`）：打包 background / popup / settings / help 四个入口，输出到 `dist/`
-3. `precompileRulesPlugin`（vite plugin closeBundle hook）：扫 `dist/rules/*.json`，给每条 leaf rule 注入 `__hints` / `__keywordCombined`
+3. `precompileRulesPlugin`（vite plugin closeBundle hook）：扫 `dist/rules/*.json`，给每条 leaf rule 注入 `__hints` / `__legacyHints` / `__keywordCombined`
 4. `minifyJsonAssets`（vite plugin closeBundle hook）：所有 JSON 用 `JSON.stringify(parsed)` 重写，去缩进与换行
 
 最终 `dist/` 可直接在 `chrome://extensions/` 开发者模式加载。

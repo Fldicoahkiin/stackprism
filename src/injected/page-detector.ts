@@ -1,5 +1,6 @@
 // @ts-nocheck
 /* eslint-disable */
+import { createHintScanner, extractRuleHints } from '@/utils/rule-hints'
 
 const yieldToMainThread = () =>
   typeof globalThis.scheduler?.yield === 'function' ? globalThis.scheduler.yield() : new Promise(resolve => setTimeout(resolve, 0))
@@ -243,7 +244,7 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
       html,
       text: `${resources.text}\n${html}\n${globalKeys.join('\n')}`,
       resourceConfidence: '中',
-      hintParts: ['resources', 'html', 'globals'],
+      hintParts: ['href', 'resources', 'html', 'globals'],
       sourceLabel: 'JSON 前端框架规则'
     })
   }
@@ -266,7 +267,7 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
       html,
       text: `${resources.text}\n${html}\n${cssVariables.text}`,
       resourceConfidence: '中',
-      hintParts: ['resources', 'html', 'cssVars'],
+      hintParts: ['href', 'resources', 'html', 'cssVars'],
       sourceLabel: 'JSON UI 框架规则'
     })
   }
@@ -319,7 +320,7 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
       html,
       text,
       resourceConfidence: '中',
-      hintParts: ['resources', 'html'],
+      hintParts: ['href', 'resources', 'html'],
       sourceLabel: 'JSON 前端补充规则'
     })
   }
@@ -570,7 +571,7 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
       resources,
       html,
       text: `${resources.text}\n${html}\n${globalKeys.join('\n')}`,
-      hintParts: ['resources', 'html', 'globals'],
+      hintParts: ['href', 'resources', 'html', 'globals'],
       sourceLabel: 'JSON 构建运行时规则'
     })
   }
@@ -581,7 +582,7 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
       resources,
       text: resources.text,
       resourceOnly: true,
-      hintParts: ['resources'],
+      hintParts: ['href', 'resources'],
       sourceLabel: 'JSON CDN 规则'
     })
 
@@ -834,7 +835,7 @@ ${html}`
       resources,
       html,
       text,
-      hintParts: ['resources', 'html'],
+      hintParts: ['href', 'resources', 'html'],
       sourceLabel: 'JSON SaaS 规则',
       evidencePrefix: rule => (rule.kind ? rule.kind + '：' : '')
     })
@@ -875,7 +876,7 @@ ${html}`
       resources,
       html,
       text: `${resources.text}\n${html}${titleText}${bodyText}`,
-      hintParts: ['resources', 'html', 'title', 'body'],
+      hintParts: ['href', 'resources', 'html', 'title', 'body'],
       sourceLabel: 'JSON 第三方登录规则',
       evidencePrefix: rule => (rule.kind ? `${rule.kind}：` : '')
     })
@@ -914,7 +915,7 @@ ${html}`
       resources,
       html,
       text: `${resources.text}\n${html}`,
-      hintParts: ['resources', 'html'],
+      hintParts: ['href', 'resources', 'html'],
       sourceLabel: 'JSON 语言规则',
       evidencePrefix: rule => (rule.kind ? `${rule.kind}：` : '')
     })
@@ -947,7 +948,7 @@ ${html}`
       resources,
       html,
       text: `${resources.text}\n${html}`,
-      hintParts: ['resources', 'html'],
+      hintParts: ['href', 'resources', 'html'],
       sourceLabel: 'JSON Feed 规则',
       confidence: '中'
     })
@@ -1143,14 +1144,7 @@ ${html}`
       return null
     }
 
-    const lowerResources = context.resources?.text || ''
-    const getLowerHtml = () => {
-      if (context._lowerHtml === undefined) {
-        context._lowerHtml = (context.text || '').toLowerCase()
-      }
-      return context._lowerHtml
-    }
-    if (!passesRulePrefilter(rule, context, lowerResources, getLowerHtml)) {
+    if (!passesRulePrefilter(rule, context)) {
       return null
     }
 
@@ -1291,72 +1285,59 @@ ${html}`
     if (!Array.isArray(rule.resourceHints) || !rule.resourceHints.length) {
       return true
     }
-    const text = context.resources?.text || context.text || ''
-    const parts = context.resources?.text ? RESOURCE_HINT_PARTS : null
-    let lowerText = null
+    // 有资源时只看资源 URL；页面没有可检测的资源时退回整段文本（整段只扫一遍，不再每条规则转一次小写）
+    const resourceText = context.resources?.text || ''
     return rule.resourceHints.some(hint => {
       const lowerHint = String(hint || '').toLowerCase()
-      const indexed = parts ? hintIndex.has(lowerHint, parts) : undefined
-      if (indexed !== undefined) return indexed
-      if (lowerText === null) lowerText = String(text).toLowerCase()
-      return lowerText.includes(lowerHint)
+      if (!resourceText) return getContextTextLookup(context)(lowerHint)
+      const indexed = hintIndex.has(lowerHint, RESOURCE_HINT_PARTS)
+      return indexed !== undefined ? indexed : resourceText.includes(lowerHint)
     })
   }
 
-  // 所有规则的 hint 只在各文本片段里各扫一遍：按前 4 个字符分桶，逐位置查桶再校验，
-  // 规则逐条判断时查表即可，不再对整段资源文本 / HTML 做成千上万次子串扫描
+  function getLowerContextText(context) {
+    if (context._lowerText === undefined) context._lowerText = String(context.text || '').toLowerCase()
+    return context._lowerText
+  }
+
+  function getContextTextLookup(context) {
+    if (!context._textLookup) context._textLookup = hintIndex.scanText(getLowerContextText(context))
+    return context._textLookup
+  }
+
+  // 所有规则的 hint 建成一个扫描器，各文本片段第一次用到时扫一遍；规则逐条判断时查表即可，
+  // 不再对整段资源文本 / HTML 做成千上万次子串扫描
   function createHintIndex(config, parts) {
-    const buckets = new Map()
-    const known = new Set()
-    const found = new Map()
-    const keyAt = (text, index) =>
-      ((text.charCodeAt(index) << 21) ^
-        (text.charCodeAt(index + 1) << 14) ^
-        (text.charCodeAt(index + 2) << 7) ^
-        text.charCodeAt(index + 3)) &
-      0x3fffffff
-    const register = hint => {
-      if (hint.length < 4 || hint.includes('\n') || known.has(hint)) return
-      known.add(hint)
-      const key = keyAt(hint, 0)
-      const bucket = buckets.get(key)
-      if (bucket) bucket.push(hint)
-      else buckets.set(key, [hint])
-    }
+    const hints = []
     for (const rules of Object.values(config || {})) {
       if (!Array.isArray(rules)) continue
       for (const rule of rules) {
         if (!rule || typeof rule !== 'object') continue
-        if (Array.isArray(rule.resourceHints) && rule.resourceHints.length) {
-          for (const hint of rule.resourceHints) register(String(hint || '').toLowerCase())
-        } else if (Array.isArray(rule.patterns)) {
-          for (const hint of getRuleAutoHints(rule)) register(hint)
+        if (Array.isArray(rule.resourceHints)) {
+          for (const hint of rule.resourceHints) hints.push(String(hint || '').toLowerCase())
         }
+        if (Array.isArray(rule.patterns)) hints.push(...getRuleAutoHints(rule))
+        if (Array.isArray(rule.__legacyHints)) hints.push(...rule.__legacyHints)
       }
     }
-    const scan = name => {
-      const source = parts[name]
-      const text = typeof source === 'function' ? source() : String(source || '')
-      const hits = new Set()
-      for (let index = 0, end = text.length - 3; index < end; index++) {
-        const bucket = buckets.get(keyAt(text, index))
-        if (!bucket) continue
-        for (const hint of bucket) {
-          if (!hits.has(hint) && text.startsWith(hint, index)) hits.add(hint)
-        }
+    const scanner = createHintScanner(hints)
+    const lookups = new Map()
+    const lookupOf = name => {
+      let lookup = lookups.get(name)
+      if (!lookup) {
+        const source = parts[name]
+        lookup = scanner.scan(typeof source === 'function' ? source() : String(source || ''))
+        lookups.set(name, lookup)
       }
-      found.set(name, hits)
-      return hits
+      return lookup
     }
     return {
-      // true / false：已由索引判定；undefined：hint 未入索引（过短或含换行），调用方回退到直接扫描
+      // true / false：已在各片段里查过；undefined：hint 含换行，可能跨片段，调用方回退到整段文本
       has(hint, names) {
-        if (!known.has(hint)) return undefined
-        for (const name of names) {
-          if ((found.get(name) || scan(name)).has(hint)) return true
-        }
-        return false
-      }
+        if (hint.includes('\n')) return undefined
+        return names.some(name => lookupOf(name)(hint))
+      },
+      scanText: text => scanner.scan(text)
     }
   }
 
@@ -1417,123 +1398,32 @@ ${html}`
     return compiled
   }
 
+  // 构建期已写入 __hints；自定义规则等没有的现算一次（正则的必需字面量集合，见 utils/rule-hints）
   function getRuleAutoHints(rule) {
     if (!rule || typeof rule !== 'object') return []
-    if (Array.isArray(rule.__hints) && rule.__hints.length) {
-      ruleHintCache.set(rule, rule.__hints)
-      return rule.__hints
+    if (Array.isArray(rule.__hints) && rule.__hints.length) return rule.__hints
+    let hints = ruleHintCache.get(rule)
+    if (!hints) {
+      hints = extractRuleHints(rule.patterns, rule.matchType === 'keyword')
+      ruleHintCache.set(rule, hints)
     }
-    const cached = ruleHintCache.get(rule)
-    if (cached) return cached
-    const patterns = rule.patterns || []
-    const isKeyword = rule.matchType === 'keyword'
-    const candidates = []
-    const genericHintParts = new Set([
-      'api',
-      'asset',
-      'assets',
-      'cache',
-      'cdn',
-      'common',
-      'content',
-      'css',
-      'data',
-      'file',
-      'files',
-      'image',
-      'images',
-      'img',
-      'js',
-      'plugin',
-      'plugins',
-      'script',
-      'scripts',
-      'source',
-      'static',
-      'style',
-      'styles',
-      'template',
-      'theme',
-      'themes',
-      'url',
-      'version'
-    ])
-    const normalizeHintCandidate = value =>
-      String(value || '')
-        .toLowerCase()
-        .replace(/\s+/g, ' ')
-        .replace(/^[^a-z0-9\u4e00-\u9fa5]+|[^a-z0-9\u4e00-\u9fa5]+$/g, '')
-        .trim()
-    const getRuleNameTokens = () => {
-      const text = `${rule.name || ''} ${rule.kind || ''}`.toLowerCase()
-      const tokens = text
-        .split(/[^a-z0-9\u4e00-\u9fa5]+/)
-        .map(token => token.trim())
-        .filter(token => token.length >= 3 && !genericHintParts.has(token))
-      if (/discuz/i.test(text)) tokens.push('discuz')
-      if (/phpbb/i.test(text)) tokens.push('phpbb')
-      if (/vbulletin/i.test(text)) tokens.push('vbulletin')
-      if (/xenforo/i.test(text)) tokens.push('xenforo')
-      if (/mediawiki/i.test(text)) tokens.push('mediawiki')
-      if (/typecho/i.test(text)) tokens.push('typecho')
-      return [...new Set(tokens)]
-    }
-    const scoreHintCandidate = (candidate, ruleTokens) => {
-      const parts = candidate.split(/[\/._\-\s:=%]+/).filter(Boolean)
-      const hasRuleToken = ruleTokens.some(token => candidate.includes(token))
-      const genericPartCount = parts.filter(part => genericHintParts.has(part)).length
-      let score = Math.min(candidate.length, 32)
-      if (hasRuleToken) score += 90
-      if (/[_-]/.test(candidate)) score += 14
-      if (/[.]/.test(candidate)) score += 8
-      if (/\d/.test(candidate) && /[a-z]/.test(candidate)) score += 6
-      if (candidate.includes('/')) score += hasRuleToken ? 4 : -8
-      if (parts.length && genericPartCount === parts.length) score -= 80
-      else score -= genericPartCount * 12
-      if (/^(?:content|static|assets|data|source|template|common)(?:[\/:=]|$)/.test(candidate) && !hasRuleToken) score -= 24
-      return score
-    }
-    for (const pattern of patterns) {
-      const text = String(pattern || '')
-      if (!text) continue
-      if (isKeyword) {
-        const lower = normalizeHintCandidate(text)
-        if (lower.length >= 4) candidates.push(lower)
-        continue
-      }
-      for (const segment of text.replace(/\\[bBdDsSwW]/g, ' ').split(/[\\^$.|?*+()[\]{}]/)) {
-        const lowerSeg = normalizeHintCandidate(segment)
-        if (lowerSeg.length >= 4) candidates.push(lowerSeg)
-      }
-    }
-    const ruleTokens = getRuleNameTokens()
-    const unique = [...new Set(candidates)]
-      .sort((a, b) => scoreHintCandidate(b, ruleTokens) - scoreHintCandidate(a, ruleTokens) || b.length - a.length)
-      .slice(0, 5)
-    ruleHintCache.set(rule, unique)
-    return unique
+    return hints
   }
 
-  function passesRulePrefilter(rule, context, lowerResources, getLowerHtml) {
+  // 必需字面量（只影响速度）和旧版门槛（__legacyHints，见 utils/rule-hints，只给没有 resourceHints 的规则）都要过
+  function passesRulePrefilter(rule, context) {
     if (!rule) return true
-    if (Array.isArray(rule.resourceHints) && rule.resourceHints.length) return true
-    const hints = getRuleAutoHints(rule)
-    if (!hints.length) return true
+    return passesHintSet(getRuleAutoHints(rule), context) && passesHintSet(rule.__legacyHints, context)
+  }
+
+  function passesHintSet(hints, context) {
+    if (!Array.isArray(hints) || !hints.length) return true
     const parts = context?.hintParts
-    const pending = []
     for (const hint of hints) {
       const indexed = parts ? hintIndex.has(hint, parts) : undefined
       if (indexed === true) return true
-      if (indexed === undefined) pending.push(hint)
-    }
-    if (!pending.length) return false
-    for (const hint of pending) {
-      if (lowerResources && lowerResources.includes(hint)) return true
-    }
-    const lowerHtml = typeof getLowerHtml === 'function' ? getLowerHtml() : getLowerHtml || ''
-    if (!lowerHtml) return false
-    for (const hint of pending) {
-      if (lowerHtml.includes(hint)) return true
+      if (indexed === false) continue
+      if (getLowerContextText(context).includes(hint)) return true
     }
     return false
   }
