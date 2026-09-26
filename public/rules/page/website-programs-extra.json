@@ -476,6 +476,869 @@
               "matchIn": ["html", "resources", "url"]
             }
           ]
+        },
+        {
+          "defaults": {
+            "confidence": "高",
+            "kind": "论坛系统"
+          },
+          "rules": [
+            {
+              "name": "Apache Answer",
+              "kind": "问答社区",
+              "url": "https://answer.apache.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Answer [^\"'>]*github\\.com/apache/answer"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "XiunoBBS",
+              "url": "https://github.com/xiulab/xiunobbs",
+              "resourceOnly": true,
+              "resourceHints": ["view/js/xiuno.js", "view/css/bootstrap-bbs.css"],
+              "patterns": ["(?:^|/)view/js/xiuno\\.js(?:[?#]|$)", "(?:^|/)view/css/bootstrap-bbs\\.css(?:[?#]|$)"]
+            },
+            {
+              "name": "XiunoBBS",
+              "url": "https://github.com/xiulab/xiunobbs",
+              "patterns": ["<meta(?=[^>]*name=[\"']?author)[^>]*content=[\"']?XiunoBBS"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Symphony",
+              "kind": "Java 社区论坛",
+              "url": "https://github.com/88250/symphony",
+              "patterns": ["symphonyLabel\\s*:\\s*[\"']", "href=[\"']https://github\\.com/88250/symphony[\"']"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Misago",
+              "kind": "Python 论坛系统",
+              "url": "https://misago-project.org",
+              "resourceOnly": true,
+              "resourceHints": ["/static/misago/"],
+              "patterns": ["(?:^|/)static/misago/(?:js|css)/misago(?:\\.[0-9a-f]+)?\\.(?:js|css)(?:[?#]|$)"]
+            },
+            {
+              "name": "Forem",
+              "kind": "开发者社区",
+              "url": "https://www.forem.com",
+              "selectors": [".crayons-btn", ".crayons-avatar", ".crayons-link"]
+            },
+            {
+              "name": "ElkArte",
+              "url": "https://www.elkarte.net",
+              "globals": ["elk_forum_action", "elk_iso_case_folding"]
+            },
+            {
+              "name": "FUDforum",
+              "url": "https://fudforum.org",
+              "globals": ["fud_msg_focus", "fud_tree_msg_focus"]
+            },
+            {
+              "name": "WoltLab Suite",
+              "url": "https://www.woltlab.com",
+              "resourceOnly": true,
+              "resourceHints": ["woltlabsuite.core", "wcf.combined"],
+              "patterns": [
+                "(?:^|/)js/WoltLabSuite\\.Core(?:\\.tiny)?(?:\\.min)?\\.js(?:[?#]|$)",
+                "(?:^|/)js/WCF\\.Combined(?:\\.tiny)?(?:\\.min)?\\.js(?:[?#]|$)"
+              ]
+            },
+            {
+              "name": "Question2Answer",
+              "kind": "问答社区",
+              "url": "https://www.question2answer.org",
+              "resourceOnly": true,
+              "resourceHints": ["qa-content/qa-"],
+              "patterns": ["(?:^|/)qa-content/qa-(?:global|page)\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "Question2Answer",
+              "kind": "问答社区",
+              "url": "https://www.question2answer.org",
+              "patterns": ["<!--\\s*Powered by Question2Answer"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "UBB.threads",
+              "url": "https://www.ubbcentral.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?UBB\\.threads"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "XMB Forum",
+              "url": "https://www.xmbforum2.com",
+              "patterns": ["<!--\\s*Powered by XMB"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Web Wiz Forums",
+              "url": "https://www.webwiz.net",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Web Wiz Forums"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "YaBB",
+              "url": "https://www.yabbforum.com",
+              "patterns": ["Powered by <a href=[\"'][^\"']*yabbforum"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "NexusPHP",
+              "kind": "PT 站程序",
+              "url": "https://github.com/xiaomlove/nexusphp",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?NexusPHP"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Gnuboard",
+              "url": "https://sir.kr",
+              "globals": ["g5_js_ver", "g5_is_admin", "g4_is_admin"]
+            },
+            {
+              "name": "XpressEngine",
+              "kind": "CMS / 论坛",
+              "url": "https://www.xpressengine.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?XpressEngine"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Rhymix",
+              "kind": "CMS / 论坛",
+              "url": "https://rhymix.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Rhymix"],
+              "matchIn": ["html"]
+            }
+          ]
+        },
+        {
+          "defaults": {
+            "confidence": "高",
+            "kind": "社交网络"
+          },
+          "rules": [
+            {
+              "name": "Friendica",
+              "url": "https://friendi.ca",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Friendica"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Elgg",
+              "url": "https://elgg.org",
+              "globals": ["elgg"]
+            },
+            {
+              "name": "Elgg",
+              "url": "https://elgg.org",
+              "resourceOnly": true,
+              "resourceHints": ["/default/elgg."],
+              "patterns": ["(?:^|/)cache/\\d+/default/elgg\\.(?:js|css)(?:[?#]|$)"]
+            },
+            {
+              "name": "HumHub",
+              "url": "https://www.humhub.com",
+              "globals": ["humhub"]
+            },
+            {
+              "name": "HumHub",
+              "url": "https://www.humhub.com",
+              "resourceOnly": true,
+              "resourceHints": ["js/humhub-"],
+              "patterns": ["(?:^|/)js/humhub-(?:app|bundle)\\.js(?:[?#]|$)"]
+            }
+          ]
+        },
+        {
+          "defaults": {
+            "confidence": "高",
+            "kind": "博客程序"
+          },
+          "rules": [
+            {
+              "name": "HTMLy",
+              "kind": "PHP 博客",
+              "url": "https://www.htmly.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?HTMLy"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "b2evolution",
+              "kind": "PHP 博客",
+              "url": "https://b2evolution.net",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?b2evolution"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Serendipity",
+              "kind": "PHP 博客",
+              "url": "https://docs.s9y.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Serendipity"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Nucleus CMS",
+              "kind": "PHP 博客",
+              "url": "http://nucleuscms.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Nucleus"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "VanBlog",
+              "kind": "Node.js 博客",
+              "url": "https://vanblog.mereith.com",
+              "selectors": [".vanblog-main", ".vanblog-sider", ".footer-powered-by-vanblog"]
+            },
+            {
+              "name": "NotionNext",
+              "kind": "Next.js 博客",
+              "url": "https://github.com/tangly1024/NotionNext",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?NotionNext"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Chevereto",
+              "kind": "图床",
+              "url": "https://chevereto.com",
+              "globals": ["CHEVERETO"]
+            },
+            {
+              "name": "Chevereto",
+              "kind": "图床",
+              "url": "https://chevereto.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Chevereto"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Chevereto",
+              "kind": "图床",
+              "url": "https://chevereto.com",
+              "resourceOnly": true,
+              "resourceHints": ["peafowl"],
+              "patterns": ["(?:^|/)lib/Peafowl/peafowl(?:\\.min)?\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "EasyImage",
+              "kind": "图床",
+              "url": "https://github.com/icret/EasyImages2.0",
+              "resourceOnly": true,
+              "resourceHints": ["/static/easyimage.js"],
+              "patterns": ["(?:^|/)public/static/EasyImage\\.js(?:[?#]|$)"]
+            }
+          ]
+        },
+        {
+          "defaults": {
+            "confidence": "高",
+            "kind": "博客平台",
+            "matchIn": ["resources", "url"]
+          },
+          "rules": [
+            {
+              "name": "Medium",
+              "url": "https://medium.com",
+              "patterns": ["^https?://cdn-client\\.medium\\.com/"]
+            },
+            {
+              "name": "Hashnode",
+              "confidence": "中",
+              "url": "https://hashnode.com",
+              "patterns": ["^https?://cdn\\.hashnode\\.com/(?:res/hashnode|uploads)/", "^https?://[^/]+\\.hashnode\\.dev/"]
+            },
+            {
+              "name": "Tistory",
+              "url": "https://www.tistory.com",
+              "patterns": ["^https?://tistory\\d*\\.daumcdn\\.net/tistory_admin/"]
+            },
+            {
+              "name": "Hatena Blog",
+              "url": "https://hatenablog.com",
+              "patterns": ["^https?://cdn\\.blog\\.st-hatena\\.com/"]
+            },
+            {
+              "name": "LiveJournal",
+              "url": "https://www.livejournal.com",
+              "patterns": ["^https?://[^/]+\\.livejournal\\.com/", "^https?://l-stat\\.livejournal\\.net/"]
+            },
+            {
+              "name": "TypePad",
+              "url": "https://www.typepad.com",
+              "patterns": ["^https?://[^/]+\\.typepad\\.com/"]
+            }
+          ]
+        },
+        {
+          "defaults": {
+            "confidence": "高",
+            "kind": "博客平台"
+          },
+          "rules": [
+            {
+              "name": "Tistory",
+              "url": "https://www.tistory.com",
+              "globals": ["TistoryBlog"]
+            },
+            {
+              "name": "TypePad",
+              "url": "https://www.typepad.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?[^\"'>]*typepad"],
+              "matchIn": ["html"]
+            }
+          ]
+        },
+        {
+          "defaults": {
+            "confidence": "高",
+            "kind": "静态站点生成器"
+          },
+          "rules": [
+            {
+              "name": "Gridsome",
+              "kind": "Vue 静态站点",
+              "url": "https://gridsome.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Gridsome"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Lume",
+              "kind": "Deno 静态站点",
+              "url": "https://lume.land",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Lume\\b"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Quarto",
+              "kind": "科技出版 / 文档",
+              "url": "https://quarto.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?quarto-"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Quarto",
+              "kind": "科技出版 / 文档",
+              "url": "https://quarto.org",
+              "resourceOnly": true,
+              "resourceHints": ["site_libs/quarto-"],
+              "patterns": ["(?:^|/)site_libs/quarto-(?:nav|html|search)/"]
+            },
+            {
+              "name": "Rspress",
+              "kind": "文档站点",
+              "url": "https://rspress.rs",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Rspress"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Eleventy",
+              "url": "https://www.11ty.dev",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Eleventy"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Bridgetown",
+              "kind": "Ruby 静态站点",
+              "url": "https://www.bridgetownrb.com",
+              "resourceOnly": true,
+              "resourceHints": ["/_bridgetown/static/"],
+              "patterns": ["(?:^|/)_bridgetown/static/"]
+            },
+            {
+              "name": "Doxygen",
+              "kind": "文档生成器",
+              "url": "https://www.doxygen.nl",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Doxygen", "<!--\\s*Generated by Doxygen"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Nextra",
+              "kind": "文档站点",
+              "url": "https://nextra.site",
+              "globals": ["__nextra_internal__", "__nextra_pageContext__"],
+              "selectors": [".nextra-focus", ".nextra-container", ".nextra-nav-container", ".nextra-sidebar-container"]
+            }
+          ]
+        },
+        {
+          "defaults": {
+            "confidence": "高",
+            "kind": "文档 / 接口管理"
+          },
+          "rules": [
+            {
+              "name": "MinDoc",
+              "kind": "Go 文档系统",
+              "url": "https://github.com/mindoc-org/mindoc",
+              "patterns": ["<title>[^<]*\\s-\\s*Powered by MinDoc\\s*</title>"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "ShowDoc",
+              "url": "https://www.showdoc.com.cn",
+              "patterns": ["[\"']\\.\\./server/index\\.php\\?s=[\"']"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "ShowDoc",
+              "url": "https://www.showdoc.com.cn",
+              "resourceOnly": true,
+              "resourceHints": ["/server/index.php?s="],
+              "patterns": ["(?:^|/)server/index\\.php\\?s=/?api/"]
+            },
+            {
+              "name": "YApi",
+              "url": "https://github.com/YMFE/yapi",
+              "selectors": ["div#yapi"],
+              "patterns": ["<div id=[\"']yapi[\"']"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "AList",
+              "kind": "网盘 / 文件列表",
+              "url": "https://github.com/alist-org/alist",
+              "globals": ["ALIST"]
+            },
+            {
+              "name": "AList",
+              "kind": "网盘 / 文件列表",
+              "url": "https://github.com/alist-org/alist",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?AList\\b"],
+              "matchIn": ["html"]
+            }
+          ]
+        },
+        {
+          "defaults": {
+            "confidence": "高",
+            "kind": "Wiki"
+          },
+          "rules": [
+            {
+              "name": "TiddlyWiki",
+              "url": "https://tiddlywiki.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?TiddlyWiki", "type=[\"']text/vnd\\.tiddlywiki"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Foswiki",
+              "url": "https://foswiki.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Foswiki"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Foswiki",
+              "url": "https://foswiki.org",
+              "resourceOnly": true,
+              "resourceHints": ["/pub/system/"],
+              "patterns": ["(?:^|/)pub/System/(?:JQueryPlugin|PatternSkin|NatSkin|FoswikiJsLibs|JavascriptFiles)/"]
+            },
+            {
+              "name": "TWiki",
+              "url": "https://twiki.org",
+              "resourceOnly": true,
+              "resourceHints": ["twiki"],
+              "patterns": ["(?:^|/)pub/TWiki/(?:TWikiJavascripts|PatternSkin)/", "twikilib(?:\\.min)?\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "TWiki",
+              "url": "https://twiki.org",
+              "patterns": ["(?:title|alt)=[\"']This site is powered by the TWiki collaboration platform"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "MoinMoin",
+              "url": "https://moinmo.in",
+              "resourceOnly": true,
+              "resourceHints": ["moin_static"],
+              "patterns": ["(?:^|/)moin_static\\d+/common/js/common\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "PmWiki",
+              "url": "https://www.pmwiki.org",
+              "resourceOnly": true,
+              "resourceHints": ["pub/lib/pmwiki-", "pub/skins/pmwiki"],
+              "patterns": ["(?:^|/)pub/lib/pmwiki-[a-z0-9.-]+\\.(?:js|css)(?:[?#]|$)", "(?:^|/)pub/skins/pmwiki(?:-responsive)?/"]
+            },
+            {
+              "name": "WikkaWiki",
+              "url": "https://wikkawiki.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?WikkaWiki"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "YesWiki",
+              "url": "https://yeswiki.net",
+              "resourceOnly": true,
+              "resourceHints": ["yeswiki-base"],
+              "patterns": ["(?:^|/)javascripts/yeswiki-base\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "YesWiki",
+              "url": "https://yeswiki.net",
+              "selectors": ["#yw-container"]
+            },
+            {
+              "name": "PukiWiki",
+              "url": "https://pukiwiki.osdn.jp",
+              "resourceOnly": true,
+              "resourceHints": ["pukiwiki"],
+              "patterns": ["(?:^|/)(?:skin/)?pukiwiki(?:\\.min)?\\.css(?:[?#]|$)"]
+            },
+            {
+              "name": "Apache JSPWiki",
+              "url": "https://jspwiki.apache.org",
+              "patterns": ["<html[^>]*\\sxmlns:jspwiki="],
+              "matchIn": ["html"]
+            }
+          ]
+        },
+        {
+          "defaults": {
+            "confidence": "高",
+            "kind": "CMS"
+          },
+          "rules": [
+            {
+              "name": "MetInfo",
+              "kind": "PHP 企业建站",
+              "url": "https://www.metinfo.cn",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?MetInfo", "class=[\"']powered_by_metinfo[\"']"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "YzmCMS",
+              "url": "https://www.yzmcms.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?author)[^>]*content=[\"']?YzmCMS"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "YzmCMS",
+              "url": "https://www.yzmcms.com",
+              "resourceOnly": true,
+              "resourceHints": ["yzm-common", "yzm-front", "yzm-style"],
+              "patterns": ["(?:^|/)css/yzm-(?:common|style|form)\\.css(?:[?#]|$)", "(?:^|/)js/yzm-front\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "DouPHP",
+              "kind": "PHP 企业建站",
+              "url": "https://www.douphp.com",
+              "patterns": [
+                "<title>[^<]*\\s-\\s*Powered by DouPHP\\s*</title>",
+                "<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?DouPHP"
+              ],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "CmsEasy",
+              "kind": "PHP 企业建站",
+              "url": "https://www.cmseasy.cn",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?CmsEasy"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "XunRuiCMS",
+              "kind": "PHP CMS",
+              "url": "https://www.xunruicms.com",
+              "resourceOnly": true,
+              "resourceHints": ["/api/language/"],
+              "patterns": ["(?:^|/)api/language/[a-z-]+/lang\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "EyouCMS",
+              "kind": "PHP 企业建站",
+              "url": "https://www.eyoucms.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?eyoucms"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "MacCMS",
+              "kind": "影视 CMS",
+              "url": "https://github.com/magicblack/maccms10",
+              "globals": ["maccms"]
+            },
+            {
+              "name": "MacCMS",
+              "kind": "影视 CMS",
+              "url": "https://github.com/magicblack/maccms10",
+              "patterns": ["var\\s+maccms\\s*=\\s*\\{"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "DESTOON",
+              "kind": "B2B 电商系统",
+              "url": "https://www.destoon.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?DESTOON"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "74cms",
+              "kind": "人才招聘系统",
+              "confidence": "中",
+              "url": "https://www.74cms.com",
+              "globals": ["qscms"]
+            },
+            {
+              "name": "FastAdmin",
+              "kind": "ThinkPHP 后台框架",
+              "url": "https://www.fastadmin.net",
+              "resourceOnly": true,
+              "resourceHints": ["require-frontend", "require-backend"],
+              "patterns": ["(?:^|/)assets/js/require-(?:frontend|backend)(?:\\.min)?\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "FastAdmin",
+              "kind": "ThinkPHP 后台框架",
+              "url": "https://www.fastadmin.net",
+              "patterns": ["data-main=[\"'][^\"']*assets/js/require-(?:frontend|backend)"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "SiteServer CMS",
+              "kind": ".NET CMS",
+              "url": "https://sscms.com",
+              "resourceOnly": true,
+              "resourceHints": ["/sitefiles/"],
+              "patterns": ["(?:^|/)sitefiles/[a-z0-9_-]+/"]
+            },
+            {
+              "name": "JEECMS",
+              "kind": "Java CMS",
+              "url": "https://www.jeecms.com",
+              "resourceOnly": true,
+              "resourceHints": ["/r/cms/www/"],
+              "patterns": ["(?:^|/)r/cms/www/"]
+            },
+            {
+              "name": "PublicCMS",
+              "kind": "Java CMS",
+              "url": "https://www.publiccms.com",
+              "resourceOnly": true,
+              "resourceHints": ["cms.support.js"],
+              "patterns": ["(?:^|/)assets/js/cms\\.support\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "MCMS",
+              "kind": "Java CMS",
+              "url": "https://www.mingsoft.net",
+              "resourceOnly": true,
+              "resourceHints": ["/static/plugins/ms/"],
+              "patterns": ["(?:^|/)static/plugins/ms/[\\d.]+/ms(?:\\.umd)?(?:\\.min)?\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "Jspxcms",
+              "kind": "Java CMS",
+              "url": "https://www.jspxcms.com",
+              "patterns": ["<title>[^<]*\\s-\\s*Powered by Jspxcms\\s*</title>"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "JPress",
+              "kind": "Java CMS",
+              "url": "https://github.com/JPressProjects/jpress",
+              "resourceOnly": true,
+              "resourceHints": ["jpressfront"],
+              "patterns": ["(?:^|/)static/front/jpressfront\\.(?:js|css)(?:[?#]|$)"]
+            },
+            {
+              "name": "RuoYi",
+              "kind": "Java 后台框架",
+              "url": "https://github.com/yangzongzhuan/RuoYi",
+              "resourceOnly": true,
+              "resourceHints": ["/ruoyi/"],
+              "patterns": ["(?:^|/)ruoyi/(?:css|js)/ry-ui(?:\\.min)?\\.(?:css|js)(?:[?#]|$)"]
+            },
+            {
+              "name": "WSTMart",
+              "kind": "电商系统",
+              "url": "https://www.wstmart.net",
+              "resourceOnly": true,
+              "resourceHints": ["/wstmart/home/"],
+              "patterns": ["(?:^|/)wstmart/home/"]
+            }
+          ]
+        },
+        {
+          "defaults": {
+            "confidence": "高",
+            "kind": "CMS"
+          },
+          "rules": [
+            {
+              "name": "Backdrop CMS",
+              "url": "https://backdropcms.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Backdrop CMS"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Backdrop CMS",
+              "url": "https://backdropcms.org",
+              "globals": ["Backdrop"]
+            },
+            {
+              "name": "e107",
+              "url": "https://e107.org",
+              "resourceOnly": true,
+              "resourceHints": ["e107_web/", "e107_plugins/", "e107_themes/", "e107_files/"],
+              "patterns": ["(?:^|/)e107_(?:web|plugins|themes|files)/"]
+            },
+            {
+              "name": "XOOPS",
+              "url": "https://xoops.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?XOOPS"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "XOOPS",
+              "url": "https://xoops.org",
+              "resourceOnly": true,
+              "resourceHints": ["include/xoops.js"],
+              "patterns": ["(?:^|/)include/xoops\\.js(?:[?#]|$)"]
+            },
+            {
+              "name": "PHP-Nuke",
+              "url": "https://phpnuke.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?PHP-Nuke"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "DataLife Engine",
+              "url": "https://dle-news.ru",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?DataLife Engine"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "DataLife Engine",
+              "url": "https://dle-news.ru",
+              "globals": ["dle_root"]
+            },
+            {
+              "name": "1C-Bitrix",
+              "url": "https://www.1c-bitrix.ru",
+              "resourceOnly": true,
+              "resourceHints": ["/bitrix/"],
+              "patterns": ["(?:^|/)bitrix/(?:js/main/core|templates|cache/(?:js|css))/"]
+            },
+            {
+              "name": "Subrion CMS",
+              "url": "https://subrion.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Subrion"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "GetSimple CMS",
+              "url": "http://get-simple.info",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?GetSimple"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "CMSimple",
+              "url": "https://www.cmsimple.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?CMSimple"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "WebsiteBaker",
+              "url": "https://websitebaker.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?WebsiteBaker"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "LEPTON CMS",
+              "url": "https://lepton-cms.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?LEPTON\\b"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Mambo",
+              "url": "https://www.mambo-foundation.org",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Mambo\\b"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "PyroCMS",
+              "url": "https://pyrocms.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?PyroCMS"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Omeka",
+              "kind": "数字馆藏 CMS",
+              "url": "https://omeka.org",
+              "globals": ["Omeka"]
+            },
+            {
+              "name": "WHMCS",
+              "kind": "主机计费系统",
+              "url": "https://www.whmcs.com",
+              "globals": ["WHMCS"]
+            },
+            {
+              "name": "NamelessMC",
+              "kind": "游戏社区 CMS",
+              "url": "https://namelessmc.com",
+              "selectors": ["span.item > a[href*='//namelessmc.com']"]
+            },
+            {
+              "name": "CubeCart",
+              "kind": "电商系统",
+              "url": "https://www.cubecart.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?cubecart"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "X-Cart",
+              "kind": "电商系统",
+              "url": "https://www.x-cart.com",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?X-Cart"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "X-Cart",
+              "kind": "电商系统",
+              "url": "https://www.x-cart.com",
+              "globals": ["xliteConfig", "xcart_web_dir"]
+            },
+            {
+              "name": "Microsoft SharePoint",
+              "kind": "企业门户",
+              "url": "https://www.microsoft.com/microsoft-365/sharepoint",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Microsoft SharePoint"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Microsoft SharePoint",
+              "kind": "企业门户",
+              "url": "https://www.microsoft.com/microsoft-365/sharepoint",
+              "globals": ["_spBodyOnLoadCalled", "SPDesignerProgID"]
+            },
+            {
+              "name": "Spree Commerce",
+              "kind": "Ruby 电商系统",
+              "url": "https://spreecommerce.org",
+              "globals": ["SpreeAPI", "Spree"]
+            },
+            {
+              "name": "Solidus",
+              "kind": "Ruby 电商系统",
+              "url": "https://solidus.io",
+              "globals": ["Solidus"]
+            },
+            {
+              "name": "LocomotiveCMS",
+              "kind": "Ruby CMS",
+              "url": "https://www.locomotivecms.com",
+              "resourceOnly": true,
+              "resourceHints": ["cdn.locomotive.works"],
+              "patterns": ["^https?://cdn\\.locomotive\\.works/"]
+            },
+            {
+              "name": "Etherpad",
+              "kind": "协作编辑器",
+              "url": "https://etherpad.org",
+              "resourceOnly": true,
+              "resourceHints": ["ep_etherpad-lite"],
+              "patterns": ["(?:^|/)static/plugins/ep_etherpad-lite/", "/ep_etherpad-lite/static/"]
+            }
+          ]
         }
       ]
     }

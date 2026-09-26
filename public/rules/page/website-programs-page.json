@@ -49,6 +49,57 @@
               "patterns": ["typedream\\.com/[^\\s\"'<>]*(?:assets|site|static)|typedreamusercontent\\.com"]
             }
           ]
+        },
+        {
+          "defaults": {
+            "kind": "站点构建器",
+            "confidence": "高",
+            "matchIn": ["resources", "url"]
+          },
+          "rules": [
+            {
+              "name": "Weebly",
+              "patterns": ["^https?://cdn\\d*\\.editmysite\\.com/"]
+            },
+            {
+              "name": "Jimdo",
+              "patterns": ["^https?://assets\\.jimstatic\\.com/", "^https?://[^/]+\\.jimdo(?:site|free)?\\.com/"]
+            },
+            {
+              "name": "Strikingly",
+              "patterns": ["^https?://(?:static-assets|static-fonts-css)\\.strikinglycdn\\.com/"]
+            },
+            {
+              "name": "Duda",
+              "patterns": ["^https?://dd-cdn\\.multiscreensite\\.com/"]
+            },
+            {
+              "name": "Google Sites",
+              "patterns": ["^https?://sites\\.google\\.com/"]
+            }
+          ]
+        },
+        {
+          "defaults": {
+            "kind": "站点构建器",
+            "confidence": "高"
+          },
+          "rules": [
+            {
+              "name": "Webnode",
+              "patterns": ["<meta(?=[^>]*name=[\"']?generator)[^>]*content=[\"']?Webnode"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Strikingly",
+              "patterns": ["<!--\\s*Powered by Strikingly\\.com"],
+              "matchIn": ["html"]
+            },
+            {
+              "name": "Google Sites",
+              "selectors": ["[data-abuse-proto*='https://sites.google.com/']"]
+            }
+          ]
         }
       ]
     }

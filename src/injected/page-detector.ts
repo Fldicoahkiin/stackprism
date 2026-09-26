@@ -647,7 +647,8 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
       resources,
       html,
       text,
-      hintParts: ['resources', 'html', 'meta'],
+      // matchIn 含 url 的规则只靠页面地址命中（如 *.hashnode.dev），预筛也要看地址
+      hintParts: ['href', 'resources', 'html', 'meta'],
       sourceLabel: 'JSON CMS / 电商平台规则'
     })
   }
@@ -845,7 +846,7 @@ ${html}`
       resources,
       html,
       text: `${resources.text}\n${html}`,
-      hintParts: ['resources', 'html'],
+      hintParts: ['href', 'resources', 'html'],
       sourceLabel: 'JSON 网站程序规则',
       evidencePrefix: rule => (rule.kind ? `${rule.kind}：` : '')
     })

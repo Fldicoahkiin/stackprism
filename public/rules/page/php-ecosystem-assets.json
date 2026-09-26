@@ -160,6 +160,12 @@
                   "patterns": ["(?:^|/)vendor/laravel-admin/(?:Admin|laravel-admin|extensions)(?:/|[?#]|$)"]
                 },
                 {
+                  "name": "Dcat Admin",
+                  "url": "https://github.com/jqhph/dcat-admin",
+                  "resourceHints": ["/vendor/dcat-admin/"],
+                  "patterns": ["(?:^|/)vendor/dcat-admin/dcat/(?:js|css|plugins)/"]
+                },
+                {
                   "name": "MoonShine",
                   "resourceHints": ["/vendor/moonshine/", "/moonshine/"],
                   "patterns": ["(?:^|/)vendor/moonshine/(?:moonshine|assets)(?:/|[?#]|$)", "(?:^|/)moonshine/(?:assets|js|css)(?:/|[?#]|$)"]

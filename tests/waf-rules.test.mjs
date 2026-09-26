@@ -1,75 +1,8 @@
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
 import { test } from 'node:test'
-import { build } from 'esbuild'
+import { detectHeaders, expandRules, loadHeaderRules, loadHeadersModule, pageRuleMatches, readRuleFile } from './helpers/rule-harness.mjs'
 
-const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 const WAF = 'WAF / 防火墙'
-
-// 与 vite.config.ts 的 precompileRulesPlugin 一致：运行时预筛只用构建期写入的 __hints
-const viteConfig = readFileSync(path.join(repoRoot, 'vite.config.ts'), 'utf8')
-const HINT_MIN_LEN = Number(/const HINT_MIN_LEN = (\d+)/.exec(viteConfig)[1])
-const HINT_MAX_COUNT = Number(/const HINT_MAX_COUNT = (\d+)/.exec(viteConfig)[1])
-const extractBuildHints = (patterns, isKeyword) => {
-  const candidates = []
-  for (const pattern of patterns) {
-    const text = String(pattern || '')
-    if (isKeyword) {
-      const lower = text.toLowerCase().trim()
-      if (lower.length >= HINT_MIN_LEN) candidates.push(lower)
-      continue
-    }
-    for (const segment of text.replace(/\\[bBdDsSwW]/g, ' ').split(/[\\^$.|?*+()[\]{}]/)) {
-      const lower = segment.toLowerCase().replace(/\s+/g, ' ').trim()
-      if (lower.length >= HINT_MIN_LEN) candidates.push(lower)
-    }
-  }
-  return [...new Set(candidates)].sort((a, b) => b.length - a.length).slice(0, HINT_MAX_COUNT)
-}
-
-const isPlainObject = value => Object.prototype.toString.call(value) === '[object Object]'
-const expandRules = (value, inherited = {}) => {
-  if (Array.isArray(value)) return value.flatMap(item => expandRules(item, inherited))
-  if (isPlainObject(value) && Array.isArray(value.rules)) {
-    return value.rules.flatMap(item => expandRules(item, { ...inherited, ...(value.defaults || {}) }))
-  }
-  if (!isPlainObject(value)) return [value]
-  const rule = { ...inherited, ...value }
-  return [Array.isArray(rule.patterns) ? { ...rule, __hints: extractBuildHints(rule.patterns, rule.matchType === 'keyword') } : rule]
-}
-const readRuleFile = file => JSON.parse(readFileSync(path.join(repoRoot, 'public/rules', file), 'utf8'))
-
-const loadHeaderRules = () => {
-  const merged = {}
-  for (const file of readdirSync(path.join(repoRoot, 'public/rules/headers'))) {
-    for (const [key, value] of Object.entries(readRuleFile(`headers/${file}`).headers || {})) {
-      merged[key] = [...(merged[key] || []), ...(key === 'interestingHeaders' ? value : expandRules(value))]
-    }
-  }
-  return merged
-}
-
-const loadHeadersModule = async () => {
-  const result = await build({
-    entryPoints: [path.join(repoRoot, 'src/background/headers.ts')],
-    bundle: true,
-    write: false,
-    format: 'esm',
-    platform: 'neutral',
-    logLevel: 'silent',
-    plugins: [
-      {
-        name: 'src-alias',
-        setup(pluginBuild) {
-          pluginBuild.onResolve({ filter: /^@\// }, args => ({ path: path.join(repoRoot, 'src', `${args.path.slice(2)}.ts`) }))
-        }
-      }
-    ]
-  })
-  return import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text, 'utf8').toString('base64')}`)
-}
 
 const headerCases = [
   [
@@ -122,39 +55,25 @@ const headerCases = [
 ]
 
 test('WAF 响应头规则经过构建期 hint 预筛后按单个特征命中', async () => {
-  const { buildHeaderRecord } = await loadHeadersModule()
+  const headersModule = await loadHeadersModule()
   const headerRules = loadHeaderRules()
   for (const [label, expected, headers] of headerCases) {
-    const responseHeaders = Object.entries(headers).flatMap(([name, value]) => [value].flat().map(item => ({ name, value: item })))
-    const record = buildHeaderRecord(
-      { url: 'https://example.com/', type: 'main_frame', method: 'GET', statusCode: 200, responseHeaders },
-      headerRules,
-      {}
-    )
-    const wafNames = record.technologies.filter(tech => tech.category === WAF).map(tech => tech.name)
+    const technologies = detectHeaders(headersModule, headerRules, headers)
+    const wafNames = technologies.filter(tech => tech.category === WAF).map(tech => tech.name)
     if (expected === null) assert.deepEqual(wafNames, [], label)
-    else assert.ok(wafNames.includes(expected), `${label}: ${JSON.stringify(record.technologies.map(tech => tech.name))}`)
+    else assert.ok(wafNames.includes(expected), `${label}: ${JSON.stringify(technologies.map(tech => tech.name))}`)
   }
 })
 
 test('华为云 WAF 的 Server 头不再归到华为云 CDN', async () => {
-  const { buildHeaderRecord } = await loadHeadersModule()
-  const record = buildHeaderRecord(
-    { url: 'https://example.com/', type: 'main_frame', responseHeaders: [{ name: 'server', value: 'HuaweiCloudWAF' }] },
-    loadHeaderRules(),
-    {}
-  )
+  const technologies = detectHeaders(await loadHeadersModule(), loadHeaderRules(), { server: 'HuaweiCloudWAF' })
   assert.deepEqual(
-    record.technologies.map(tech => `${tech.category}::${tech.name}`),
+    technologies.map(tech => `${tech.category}::${tech.name}`),
     [`${WAF}::Huawei Cloud WAF / 华为云 WAF`]
   )
 })
 
 const pageRules = expandRules(readRuleFile('page/waf-page.json').page.saasServices)
-// 规则命中需同时满足：构建期 hint 至少有一个出现在文本里，且某条正则匹配
-const pageRuleMatches = (rule, text) =>
-  (!rule.__hints?.length || rule.__hints.some(hint => text.toLowerCase().includes(hint))) &&
-  (rule.patterns || []).some(pattern => new RegExp(pattern, rule.caseSensitive ? '' : 'i').test(text))
 const matchedPageRuleNames = text => [...new Set(pageRules.filter(rule => pageRuleMatches(rule, text)).map(rule => rule.name))]
 
 test('WAF 页面规则只认验证页 / 拦截页的专属资源和结构', () => {
