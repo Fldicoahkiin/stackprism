@@ -320,15 +320,28 @@ export const matchesHeaderPatterns = (patterns: unknown, text: string, rule: any
   })
 }
 
+// 同一个匹配上下文里 hint 的命中结果只算一次：动态快照要跑上万条规则，resourceHints 大量重复
+const contextHintMemo = new WeakMap<object, Map<string, boolean>>()
+
 export const matchesRuleTextHints = (rule: any, contextOrText: any): boolean => {
   if (!Array.isArray(rule.resourceHints) || !rule.resourceHints.length) {
     return true
   }
-  const value =
-    typeof contextOrText === 'string'
-      ? contextOrText.toLowerCase()
-      : contextOrText?.lowerText || String(contextOrText?.text || '').toLowerCase()
-  return rule.resourceHints.some((hint: string) => value.includes(String(hint || '').toLowerCase()))
+  if (typeof contextOrText === 'string' || !contextOrText) {
+    const value = String(contextOrText || '').toLowerCase()
+    return rule.resourceHints.some((hint: string) => value.includes(String(hint || '').toLowerCase()))
+  }
+  const value = contextOrText.lowerText || String(contextOrText.text || '').toLowerCase()
+  const memo = contextHintMemo.get(contextOrText) || new Map<string, boolean>()
+  contextHintMemo.set(contextOrText, memo)
+  return rule.resourceHints.some((hint: string) => {
+    const key = String(hint || '').toLowerCase()
+    const cached = memo.get(key)
+    if (cached !== undefined) return cached
+    const hit = value.includes(key)
+    memo.set(key, hit)
+    return hit
+  })
 }
 
 export const createCollector =

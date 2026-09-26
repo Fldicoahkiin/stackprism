@@ -1,7 +1,12 @@
 // @ts-nocheck
 /* eslint-disable */
 
-const yieldToMainThread = () => new Promise(resolve => setTimeout(resolve, 0))
+const yieldToMainThread = () =>
+  typeof globalThis.scheduler?.yield === 'function' ? globalThis.scheduler.yield() : new Promise(resolve => setTimeout(resolve, 0))
+
+// 单个同步任务的时间预算：规则匹配超过预算就让出主线程，避免形成长任务
+const SLICE_BUDGET_MS = 30
+const RESOURCE_HINT_PARTS = ['resources']
 
 const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) => {
   const technologies = []
@@ -14,6 +19,24 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
   const documentHtmlSample = getHtmlSample()
   const globalKeys = safeGlobalKeys()
   const add = createCollector(technologies)
+  let cachedBodyText = null
+  let sliceStartedAt = performance.now()
+  const hintIndex = createHintIndex(ruleConfig, {
+    resources: resources.text,
+    html: documentHtmlSample,
+    globals: globalKeys.join('\n').toLowerCase(),
+    cssVars: cssVariables.text,
+    href: location.href.toLowerCase(),
+    title: String(document.title || '').toLowerCase(),
+    meta: [
+      getMetaContent('apple-mobile-web-app-title'),
+      getMetaContent('application-name'),
+      'generator: ' + (getMetaContent('generator') || '').toLowerCase()
+    ]
+      .join('\n')
+      .toLowerCase(),
+    body: () => readBodyText(120000).toLowerCase()
+  })
   const phpRuntimeTechnologyNames = new Set(
     [
       'WordPress',
@@ -49,21 +72,21 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
     ].map(normalizeRuleName)
   )
 
-  await yieldToMainThread()
-  detectFrontendFrameworks(add, resources, classTokens, documentHtmlSample, globalKeys, ruleConfig.frontendFrameworks || [])
-  detectUiFrameworks(add, resources, classTokens, cssVariables, documentHtmlSample, ruleConfig.uiFrameworks || [])
-  detectAdditionalFrontendTechnologies(add, resources, classTokens, documentHtmlSample, ruleConfig.frontendExtra || [])
+  await yieldSlice()
+  await detectFrontendFrameworks(add, resources, classTokens, documentHtmlSample, globalKeys, ruleConfig.frontendFrameworks || [])
+  await detectUiFrameworks(add, resources, classTokens, cssVariables, documentHtmlSample, ruleConfig.uiFrameworks || [])
+  await detectAdditionalFrontendTechnologies(add, resources, classTokens, documentHtmlSample, ruleConfig.frontendExtra || [])
   detectMinifiedScriptFallback(add, resources, technologies)
 
-  await yieldToMainThread()
-  detectBuildAndRuntime(add, resources, documentHtmlSample, globalKeys, ruleConfig.buildRuntime || [])
-  detectCdnAndHosting(add, resources, ruleConfig.cdnProviders || [])
-  detectBackendFrameworkHints(add, resources, documentHtmlSample, ruleConfig.backendHints || [])
-  detectCmsAndCommerce(add, resources, documentHtmlSample, ruleConfig.websitePrograms || [])
+  await yieldSlice()
+  await detectBuildAndRuntime(add, resources, documentHtmlSample, globalKeys, ruleConfig.buildRuntime || [])
+  await detectCdnAndHosting(add, resources, ruleConfig.cdnProviders || [])
+  await detectBackendFrameworkHints(add, resources, documentHtmlSample, ruleConfig.backendHints || [])
+  await detectCmsAndCommerce(add, resources, documentHtmlSample, ruleConfig.websitePrograms || [])
 
-  await yieldToMainThread()
-  detectWebsitePrograms(add, resources, documentHtmlSample, globalKeys, ruleConfig.websitePrograms || [])
-  detectCmsThemesAndSource(
+  await yieldSlice()
+  await detectWebsitePrograms(add, resources, documentHtmlSample, globalKeys, ruleConfig.websitePrograms || [])
+  await detectCmsThemesAndSource(
     add,
     resources,
     classTokens,
@@ -72,19 +95,19 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
     ruleConfig.cmsThemes || [],
     ruleConfig.dynamicAssetExtractors || []
   )
-  detectProbeTools(add, resources, documentHtmlSample, globalKeys, ruleConfig.probes || [])
-  detectProgrammingLanguages(add, resources, documentHtmlSample, globalKeys, ruleConfig.languages || [])
+  await detectProbeTools(add, resources, documentHtmlSample, globalKeys, ruleConfig.probes || [])
+  await detectProgrammingLanguages(add, resources, documentHtmlSample, globalKeys, ruleConfig.languages || [])
 
-  await yieldToMainThread()
+  await yieldSlice()
   inferLanguagesFromDetectedTechnologies(add, technologies)
-  detectFeeds(add, resources, documentHtmlSample, ruleConfig.feeds || [])
-  detectSaasServices(add, resources, documentHtmlSample, globalKeys, ruleConfig.saasServices || [])
-  detectThirdPartyLogins(add, resources, documentHtmlSample, globalKeys, ruleConfig.thirdPartyLogins || [])
+  await detectFeeds(add, resources, documentHtmlSample, ruleConfig.feeds || [])
+  await detectSaasServices(add, resources, documentHtmlSample, globalKeys, ruleConfig.saasServices || [])
+  await detectThirdPartyLogins(add, resources, documentHtmlSample, globalKeys, ruleConfig.thirdPartyLogins || [])
 
-  await yieldToMainThread()
-  detectPaymentSystems(add, resources, documentHtmlSample, globalKeys, ruleConfig.paymentSystems || [])
-  detectAnalytics(add, resources, documentHtmlSample, globalKeys, ruleConfig.analyticsProviders || [])
-  detectCustomRules(add, resources, documentHtmlSample, globalKeys, ruleConfig.customRules || [])
+  await yieldSlice()
+  await detectPaymentSystems(add, resources, documentHtmlSample, globalKeys, ruleConfig.paymentSystems || [])
+  await detectAnalytics(add, resources, documentHtmlSample, globalKeys, ruleConfig.analyticsProviders || [])
+  await detectCustomRules(add, resources, documentHtmlSample, globalKeys, ruleConfig.customRules || [])
   detectSecurityAndProtocol(add)
 
   return {
@@ -205,23 +228,24 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
     }
   }
 
-  function detectFrontendFrameworks(add, resources, classes, html, globalKeys, externalRules) {
+  async function detectFrontendFrameworks(add, resources, classes, html, globalKeys, externalRules) {
     if (hasReactDomMarker()) {
       add('前端框架', 'React', '高', 'DOM 节点存在 React Fiber 标记')
     }
 
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '前端框架',
       resources,
       classes,
       html,
       text: `${resources.text}\n${html}\n${globalKeys.join('\n')}`,
       resourceConfidence: '中',
+      hintParts: ['resources', 'html', 'globals'],
       sourceLabel: 'JSON 前端框架规则'
     })
   }
 
-  function detectUiFrameworks(add, resources, classes, cssVariables, html, externalRules) {
+  async function detectUiFrameworks(add, resources, classes, cssVariables, html, externalRules) {
     const atomicCssOrigin = detectAtomicCssOrigin(cssVariables)
     if (atomicCssOrigin === 'unocss') {
       add('UI / CSS 框架', 'UnoCSS', '高', '存在 --un-* CSS 变量(UnoCSS 默认前缀)')
@@ -231,7 +255,7 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
       add('UI / CSS 框架', 'Tailwind CSS', '中', '存在大量 Tailwind 风格原子类名')
     }
 
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: 'UI / CSS 框架',
       resources,
       classes,
@@ -239,6 +263,7 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
       html,
       text: `${resources.text}\n${html}\n${cssVariables.text}`,
       resourceConfidence: '中',
+      hintParts: ['resources', 'html', 'cssVars'],
       sourceLabel: 'JSON UI 框架规则'
     })
   }
@@ -282,15 +307,16 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
     return ''
   }
 
-  function detectAdditionalFrontendTechnologies(add, resources, classes, html, externalRules) {
+  async function detectAdditionalFrontendTechnologies(add, resources, classes, html, externalRules) {
     const text = `${resources.text}\n${html}`
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '前端库',
       resources,
       classes,
       html,
       text,
       resourceConfidence: '中',
+      hintParts: ['resources', 'html'],
       sourceLabel: 'JSON 前端补充规则'
     })
   }
@@ -531,26 +557,28 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
     return item?.category === '前端库' && /^疑似前端库:/i.test(String(item?.name || '').trim())
   }
 
-  function detectBuildAndRuntime(add, resources, html, globalKeys, externalRules) {
+  async function detectBuildAndRuntime(add, resources, html, globalKeys, externalRules) {
     if (navigator.serviceWorker?.controller) {
       add('构建与运行时', 'Service Worker', '中', '当前页面受 Service Worker 控制')
     }
 
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '构建与运行时',
       resources,
       html,
       text: `${resources.text}\n${html}\n${globalKeys.join('\n')}`,
+      hintParts: ['resources', 'html', 'globals'],
       sourceLabel: 'JSON 构建运行时规则'
     })
   }
 
-  function detectCdnAndHosting(add, resources, externalRules) {
-    detectJsonRuleList(add, externalRules, {
+  async function detectCdnAndHosting(add, resources, externalRules) {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: 'CDN / 托管',
       resources,
       text: resources.text,
       resourceOnly: true,
+      hintParts: ['resources'],
       sourceLabel: 'JSON CDN 规则'
     })
 
@@ -596,25 +624,27 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
     return /^(?:static\.cloudflareinsights\.com|challenges\.cloudflare\.com)$/i.test(host)
   }
 
-  function detectBackendFrameworkHints(add, resources, html, externalRules) {
+  async function detectBackendFrameworkHints(add, resources, html, externalRules) {
     const text = [location.href, resources.text, html].join('\n')
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '后端 / 服务器框架',
       resources,
       html,
       text,
+      hintParts: ['href', 'resources', 'html'],
       sourceLabel: 'JSON 后端规则'
     })
   }
 
-  function detectCmsAndCommerce(add, resources, html, externalRules) {
+  async function detectCmsAndCommerce(add, resources, html, externalRules) {
     const generator = (getMetaContent('generator') || '').toLowerCase()
     const text = [resources.text, html, 'generator: ' + generator].join('\n')
-    detectJsonRuleList(add, filterCmsAndCommerceRules(externalRules), {
+    await detectJsonRuleList(add, filterCmsAndCommerceRules(externalRules), {
       defaultCategory: 'CMS / 电商平台',
       resources,
       html,
       text,
+      hintParts: ['resources', 'html', 'meta'],
       sourceLabel: 'JSON CMS / 电商平台规则'
     })
   }
@@ -680,7 +710,7 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
     return items.filter(item => item?.category !== 'CMS / 电商平台' || !websiteProgramNames.has(normalizeRuleName(item.name)))
   }
 
-  function detectCmsThemesAndSource(add, resources, classes, html, globalKeys, externalRules, assetExtractors = []) {
+  async function detectCmsThemesAndSource(add, resources, classes, html, globalKeys, externalRules, assetExtractors = []) {
     const assetText = `${location.href}
 ${resources.all.join('\n')}`
     const text = `${assetText}
@@ -708,12 +738,13 @@ ${html}`
       // 忽略跨站脚本或代理对象异常。
     }
 
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '主题 / 模板',
       resources,
       classes,
       html,
       text,
+      hintParts: ['href', 'resources', 'html'],
       sourceLabel: 'JSON 主题模板规则',
       evidencePrefix: rule => (rule.kind ? `${rule.kind}：` : '')
     })
@@ -792,93 +823,100 @@ ${html}`
       .slice(0, 160)
   }
 
-  function detectSaasServices(add, resources, html, globalKeys, externalRules) {
+  async function detectSaasServices(add, resources, html, globalKeys, externalRules) {
     const text = [resources.text, html].join('\n')
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: 'SaaS / 第三方服务',
       resources,
       html,
       text,
+      hintParts: ['resources', 'html'],
       sourceLabel: 'JSON SaaS 规则',
       evidencePrefix: rule => (rule.kind ? rule.kind + '：' : '')
     })
   }
 
-  function detectWebsitePrograms(add, resources, html, globalKeys, externalRules) {
-    detectJsonRuleList(add, externalRules, {
+  async function detectWebsitePrograms(add, resources, html, globalKeys, externalRules) {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '网站程序',
       resources,
       html,
       text: `${resources.text}\n${html}`,
+      hintParts: ['resources', 'html'],
       sourceLabel: 'JSON 网站程序规则',
       evidencePrefix: rule => (rule.kind ? `${rule.kind}：` : '')
     })
   }
 
-  function detectProbeTools(add, resources, html, globalKeys, externalRules) {
+  async function detectProbeTools(add, resources, html, globalKeys, externalRules) {
     const titleText = document.title ? `\n${document.title}` : ''
     const appMetadataText = [getMetaContent('apple-mobile-web-app-title'), getMetaContent('application-name')].filter(Boolean).join('\n')
     const appMetadata = appMetadataText ? `\n${appMetadataText}` : ''
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '探针 / 监控',
       resources,
       html: '',
       text: `${location.href}\n${resources.text}${titleText}${appMetadata}`,
+      hintParts: ['href', 'resources', 'title', 'meta'],
       sourceLabel: 'JSON 探针规则',
       evidencePrefix: rule => (rule.kind ? `${rule.kind}：` : '')
     })
   }
 
-  function detectThirdPartyLogins(add, resources, html, globalKeys, externalRules) {
+  async function detectThirdPartyLogins(add, resources, html, globalKeys, externalRules) {
     const titleText = document.title ? `\n${document.title}` : ''
-    const bodyText = document.body?.innerText ? `\n${document.body.innerText.slice(0, 100000)}` : ''
-    detectJsonRuleList(add, externalRules, {
+    const bodyText = readBodyText(100000) ? `\n${readBodyText(100000)}` : ''
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '第三方登录 / OAuth',
       resources,
       html,
       text: `${resources.text}\n${html}${titleText}${bodyText}`,
+      hintParts: ['resources', 'html', 'title', 'body'],
       sourceLabel: 'JSON 第三方登录规则',
       evidencePrefix: rule => (rule.kind ? `${rule.kind}：` : '')
     })
   }
 
-  function detectPaymentSystems(add, resources, html, globalKeys, externalRules) {
-    const bodyText = document.body?.innerText ? `\n${document.body.innerText.slice(0, 80000)}` : ''
-    detectJsonRuleList(add, externalRules, {
+  async function detectPaymentSystems(add, resources, html, globalKeys, externalRules) {
+    const bodyText = readBodyText(80000) ? `\n${readBodyText(80000)}` : ''
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '支付系统',
       resources,
       html,
       text: `${location.href}\n${resources.text}\n${html}${bodyText}`,
+      hintParts: ['href', 'resources', 'html', 'body'],
       sourceLabel: 'JSON 支付规则',
       evidencePrefix: rule => (rule.kind ? `${rule.kind}：` : '')
     })
   }
 
-  function detectCustomRules(add, resources, html, globalKeys, externalRules) {
-    const bodyText = document.body?.innerText ? `\n${document.body.innerText.slice(0, 120000)}` : ''
+  async function detectCustomRules(add, resources, html, globalKeys, externalRules) {
+    const bodyText = readBodyText(120000) ? `\n${readBodyText(120000)}` : ''
     const text = [location.href, document.title, resources.text, html, bodyText, globalKeys.join('\n')].join('\n')
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '其他库',
       resources,
       html,
       text,
+      hintParts: ['href', 'title', 'resources', 'html', 'body', 'globals'],
       sourceLabel: '自定义页面规则',
       evidencePrefix: rule => (rule.kind ? `${rule.kind}：` : '')
     })
   }
 
-  function detectProgrammingLanguages(add, resources, html, globalKeys, externalRules) {
-    detectJsonRuleList(add, externalRules, {
+  async function detectProgrammingLanguages(add, resources, html, globalKeys, externalRules) {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '开发语言 / 运行时',
       resources,
       html,
       text: `${resources.text}\n${html}`,
+      hintParts: ['resources', 'html'],
       sourceLabel: 'JSON 语言规则',
       evidencePrefix: rule => (rule.kind ? `${rule.kind}：` : '')
     })
   }
 
-  function detectFeeds(add, resources, html, externalRules) {
+  async function detectFeeds(add, resources, html, externalRules) {
     const feedLinks = [...document.querySelectorAll("link[rel~='alternate']")]
       .map(link => ({
         href: link.href || link.getAttribute('href') || '',
@@ -900,11 +938,12 @@ ${html}`
       add('RSS / 订阅', name, '高', `发现 feed 链接：${shortUrl(link.href)}${link.title ? ` (${link.title})` : ''}`)
     }
 
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: 'RSS / 订阅',
       resources,
       html,
       text: `${resources.text}\n${html}`,
+      hintParts: ['resources', 'html'],
       sourceLabel: 'JSON Feed 规则',
       confidence: '中'
     })
@@ -921,12 +960,20 @@ ${html}`
     return 'RSS Feed'
   }
 
-  function detectJsonRuleList(add, rules, context) {
+  async function yieldSlice() {
+    await yieldToMainThread()
+    sliceStartedAt = performance.now()
+  }
+
+  async function detectJsonRuleList(add, rules, context) {
     if (!Array.isArray(rules) || !rules.length) {
       return
     }
 
     for (const rule of rules) {
+      if (performance.now() - sliceStartedAt > SLICE_BUDGET_MS) {
+        await yieldSlice()
+      }
       const match = matchJsonRule(rule, context)
       if (!match) {
         continue
@@ -1088,7 +1135,7 @@ ${html}`
       return cssVariableMatch
     }
 
-    if (!matchesResourceHints(rule, context.resources?.text || context.text || '')) {
+    if (!matchesResourceHints(rule, context)) {
       return null
     }
 
@@ -1099,7 +1146,7 @@ ${html}`
       }
       return context._lowerHtml
     }
-    if (!passesRulePrefilter(rule, lowerResources, getLowerHtml)) {
+    if (!passesRulePrefilter(rule, context, lowerResources, getLowerHtml)) {
       return null
     }
 
@@ -1207,12 +1254,81 @@ ${html}`
     }
   }
 
-  function matchesResourceHints(rule, text) {
+  function matchesResourceHints(rule, context) {
     if (!Array.isArray(rule.resourceHints) || !rule.resourceHints.length) {
       return true
     }
-    const value = String(text || '').toLowerCase()
-    return rule.resourceHints.some(hint => value.includes(String(hint || '').toLowerCase()))
+    const text = context.resources?.text || context.text || ''
+    const parts = context.resources?.text ? RESOURCE_HINT_PARTS : null
+    let lowerText = null
+    return rule.resourceHints.some(hint => {
+      const lowerHint = String(hint || '').toLowerCase()
+      const indexed = parts ? hintIndex.has(lowerHint, parts) : undefined
+      if (indexed !== undefined) return indexed
+      if (lowerText === null) lowerText = String(text).toLowerCase()
+      return lowerText.includes(lowerHint)
+    })
+  }
+
+  // 所有规则的 hint 只在各文本片段里各扫一遍：按前 4 个字符分桶，逐位置查桶再校验，
+  // 规则逐条判断时查表即可，不再对整段资源文本 / HTML 做成千上万次子串扫描
+  function createHintIndex(config, parts) {
+    const buckets = new Map()
+    const known = new Set()
+    const found = new Map()
+    const keyAt = (text, index) =>
+      ((text.charCodeAt(index) * 65536 + text.charCodeAt(index + 1)) * 65536 + text.charCodeAt(index + 2)) * 65536 +
+      text.charCodeAt(index + 3)
+    const register = hint => {
+      if (hint.length < 4 || hint.includes('\n') || known.has(hint)) return
+      known.add(hint)
+      const key = keyAt(hint, 0)
+      const bucket = buckets.get(key)
+      if (bucket) bucket.push(hint)
+      else buckets.set(key, [hint])
+    }
+    for (const rules of Object.values(config || {})) {
+      if (!Array.isArray(rules)) continue
+      for (const rule of rules) {
+        if (!rule || typeof rule !== 'object') continue
+        if (Array.isArray(rule.resourceHints) && rule.resourceHints.length) {
+          for (const hint of rule.resourceHints) register(String(hint || '').toLowerCase())
+        } else if (Array.isArray(rule.patterns)) {
+          for (const hint of getRuleAutoHints(rule)) register(hint)
+        }
+      }
+    }
+    const scan = name => {
+      const source = parts[name]
+      const text = typeof source === 'function' ? source() : String(source || '')
+      const hits = new Set()
+      for (let index = 0, end = text.length - 3; index < end; index++) {
+        const bucket = buckets.get(keyAt(text, index))
+        if (!bucket) continue
+        for (const hint of bucket) {
+          if (!hits.has(hint) && text.startsWith(hint, index)) hits.add(hint)
+        }
+      }
+      found.set(name, hits)
+      return hits
+    }
+    return {
+      // true / false：已由索引判定；undefined：hint 未入索引（过短或含换行），调用方回退到直接扫描
+      has(hint, names) {
+        if (!known.has(hint)) return undefined
+        for (const name of names) {
+          if ((found.get(name) || scan(name)).has(hint)) return true
+        }
+        return false
+      }
+    }
+  }
+
+  function readBodyText(limit) {
+    if (cachedBodyText === null) {
+      cachedBodyText = String(document.body?.innerText || '').slice(0, 120000)
+    }
+    return cachedBodyText.slice(0, limit)
   }
 
   function compileRulePattern(pattern, rule) {
@@ -1362,17 +1478,25 @@ ${html}`
     return unique
   }
 
-  function passesRulePrefilter(rule, lowerResources, getLowerHtml) {
+  function passesRulePrefilter(rule, context, lowerResources, getLowerHtml) {
     if (!rule) return true
     if (Array.isArray(rule.resourceHints) && rule.resourceHints.length) return true
     const hints = getRuleAutoHints(rule)
     if (!hints.length) return true
+    const parts = context?.hintParts
+    const pending = []
     for (const hint of hints) {
+      const indexed = parts ? hintIndex.has(hint, parts) : undefined
+      if (indexed === true) return true
+      if (indexed === undefined) pending.push(hint)
+    }
+    if (!pending.length) return false
+    for (const hint of pending) {
       if (lowerResources && lowerResources.includes(hint)) return true
     }
     const lowerHtml = typeof getLowerHtml === 'function' ? getLowerHtml() : getLowerHtml || ''
     if (!lowerHtml) return false
-    for (const hint of hints) {
+    for (const hint of pending) {
       if (lowerHtml.includes(hint)) return true
     }
     return false
@@ -1401,13 +1525,14 @@ ${html}`
     return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   }
 
-  function detectAnalytics(add, resources, html, globalKeys, externalRules) {
+  async function detectAnalytics(add, resources, html, globalKeys, externalRules) {
     const text = [location.href, resources.text, html].join('\n')
-    detectJsonRuleList(add, externalRules, {
+    await detectJsonRuleList(add, externalRules, {
       defaultCategory: '统计 / 分析',
       resources,
       html: '',
       text,
+      hintParts: ['href', 'resources', 'html'],
       sourceLabel: 'JSON 统计规则',
       evidencePrefix: rule => (rule.kind ? rule.kind + '：' : '')
     })
@@ -1508,14 +1633,11 @@ ${html}`
   }
 
   function hasReactDomMarker() {
-    const nodes = [
-      document.getElementById('root'),
-      document.getElementById('__next'),
-      document.body,
-      ...document.querySelectorAll('[id], [class]')
-    ]
-      .filter(Boolean)
-      .slice(0, 800)
+    const nodes = [document.getElementById('root'), document.getElementById('__next'), document.body].filter(Boolean)
+    const candidates = document.querySelectorAll('[id], [class]')
+    for (let index = 0; index < candidates.length && nodes.length < 800; index++) {
+      nodes.push(candidates[index])
+    }
     for (const node of nodes) {
       try {
         if (

@@ -146,18 +146,12 @@
         "rules": [
           {
             "name": "Elasticsearch Kibana",
-            "patterns": [
-              "(?:^|\\n)kbn-name:",
-              "(?:^|\\n)kbn-version:",
-              "(?:^|\\n)x-app-name:\\s*kibana"
-            ],
+            "patterns": ["(?:^|\\n)kbn-name:", "(?:^|\\n)kbn-version:", "(?:^|\\n)x-app-name:\\s*kibana"],
             "evidence": "响应头包含 Kibana 专属标识"
           },
           {
             "name": "Grafana",
-            "patterns": [
-              "(?:^|\\n)set-cookie:[^\\n]*(?:^|[;,\\s])grafana_sess(?:=|[,;\\s]|$)"
-            ],
+            "patterns": ["(?:^|\\n)set-cookie:[^\\n]*(?:^|[;,\\s])grafana_sess(?:=|[,;\\s]|$)"],
             "evidence": "Set-Cookie 包含 Grafana 会话标识"
           }
         ]
@@ -170,17 +164,12 @@
         "rules": [
           {
             "name": "Jenkins",
-            "patterns": [
-              "(?:^|\\n)x-hudson:",
-              "(?:^|\\n)x-hudson-cli-port:"
-            ],
+            "patterns": ["(?:^|\\n)x-hudson:", "(?:^|\\n)x-hudson-cli-port:"],
             "evidence": "响应头包含 Hudson / Jenkins 专属标识"
           },
           {
             "name": "SonarQube",
-            "patterns": [
-              "(?:^|\\n)set-cookie:[^\\n]*(?:^|[;,\\s])_sonar_session(?:=|[,;\\s]|$)"
-            ],
+            "patterns": ["(?:^|\\n)set-cookie:[^\\n]*(?:^|[;,\\s])_sonar_session(?:=|[,;\\s]|$)"],
             "evidence": "Set-Cookie 包含 SonarQube 会话标识"
           }
         ]
@@ -193,18 +182,13 @@
           {
             "name": "Sinatra",
             "confidence": "中",
-            "patterns": [
-              "(?:^|\\n)x-cascade:\\s*pass",
-              "__sinatra__"
-            ],
+            "patterns": ["(?:^|\\n)x-cascade:\\s*pass", "__sinatra__"],
             "evidence": "响应头或资源路径包含 Sinatra 框架线索"
           },
           {
             "name": "Perl Mojolicious",
             "confidence": "中",
-            "patterns": [
-              "(?:^|\\n)x-powered-by:[^\\n]*mojolicious"
-            ],
+            "patterns": ["(?:^|\\n)x-powered-by:[^\\n]*mojolicious"],
             "evidence": "X-Powered-By 包含 Mojolicious 框架标识"
           }
         ]

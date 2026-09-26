@@ -6,6 +6,7 @@ import { buildEffectivePageRules, loadDetectorSettings, loadTechRules } from './
 import { scheduleBundleLicenseDetection } from './bundle-license'
 import { injectContentObserver } from './content-injector'
 import { withTabWriteLock } from './tab-write-lock'
+import { collectResourceHints, probePageResourceHints, selectPageDetectorRules } from './page-rule-filter'
 import { isDetectablePageUrl } from '@/utils/page-support'
 
 const activeDetectionTimers = new Map<number, ReturnType<typeof setTimeout>>()
@@ -111,13 +112,14 @@ export const runActivePageDetection = async (tabId: number, options: { force?: b
     // 等 detector 跑完再统一 re-read 最新 data 再做合并写回
     const [rules, settings] = await Promise.all([loadTechRules(), loadDetectorSettings()])
     const pageRules = buildEffectivePageRules(rules.page || {}, settings)
+    const hintHits = await probePageResourceHints(tabId, collectResourceHints(rules.page || {}))
     await chrome.scripting.executeScript({
       target: { tabId },
       world: 'MAIN',
       func: r => {
         ;(window as any).__SP_RULES__ = r
       },
-      args: [pageRules]
+      args: [selectPageDetectorRules(pageRules, hintHits)]
     })
     const injection = await chrome.scripting.executeScript({
       target: { tabId },

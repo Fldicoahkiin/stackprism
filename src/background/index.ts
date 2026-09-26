@@ -1,7 +1,7 @@
 import { injectContentObserverIntoOpenTabs } from './content-injector'
-import { clearBadge, clearTabSession } from './tab-store'
+import { clearBadge, clearTabSession, forgetBadgeState } from './tab-store'
 import { clearDynamicSnapshotTimer, clearPendingDynamicSnapshot } from './dynamic-snapshot'
-import { buildHeaderRecord, dedupeApiRecords, mergeHeaderRecords, shouldMergeHeaderRecords } from './headers'
+import { buildHeaderRecord, dedupeApiRecords, hasEquivalentHeaderRecord, mergeHeaderRecords, shouldMergeHeaderRecords } from './headers'
 import {
   clearActiveDetectionTimer,
   clearDetectionThrottle,
@@ -37,6 +37,7 @@ chrome.tabs.onRemoved.addListener(tabId => {
   clearDynamicSnapshotTimer(tabId)
   clearPendingDynamicSnapshot(tabId)
   clearTabSession(tabId)
+  forgetBadgeState(tabId)
 })
 
 const clearTabDetectionState = (tabId: number) => {
@@ -105,10 +106,16 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 })
 
+const API_REQUEST_TYPES = new Set(['xmlhttprequest', 'fetch', 'websocket'])
+
+// 只有主文档、iframe 和接口请求会进入记录；图片、媒体、脚本等请求直接跳过，避免每个请求都整份读写存储
+const isRecordedRequestType = (type: string): boolean => type === 'main_frame' || type === 'sub_frame' || API_REQUEST_TYPES.has(type)
+
 chrome.webRequest.onHeadersReceived.addListener(
   details => {
     if (details.tabId < 0 || !details.responseHeaders) return
     if (!isObservableRequestUrl(details.url)) return
+    if (!isRecordedRequestType(details.type as string)) return
 
     Promise.all([loadTechRules(), loadDetectorSettings(), getTabSnapshot(details.tabId)])
       .then(async ([rules, settings, tab]) => {
@@ -129,9 +136,11 @@ chrome.webRequest.onHeadersReceived.addListener(
             latest.main = shouldMergeHeaderRecords(latest.main, record) ? mergeHeaderRecords(latest.main, record) : record
             latest.apis = []
             latest.frames = []
-          } else if (details.type === 'xmlhttprequest' || (details.type as string) === 'fetch' || details.type === 'websocket') {
+          } else if (API_REQUEST_TYPES.has(details.type as string)) {
+            if (hasEquivalentHeaderRecord(latest.apis, record)) return
             latest.apis = dedupeApiRecords([record, ...(latest.apis || [])])
           } else if (details.type === 'sub_frame') {
+            if (hasEquivalentHeaderRecord(latest.frames, record)) return
             latest.frames = dedupeApiRecords([record, ...(latest.frames || [])]).slice(0, 10)
           }
           latest.updatedAt = Date.now()

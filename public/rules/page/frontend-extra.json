@@ -460,9 +460,7 @@
           {
             "name": "React Router",
             "url": "https://reactrouter.com",
-            "patterns": [
-              "(?:^|/)react-router(?:-dom)?(?:@[\\d.]+)?(?:/[^\\s\"'<>]+)?\\.(?:m?js|cjs)(?:[?#\"'<>\\s]|$)"
-            ],
+            "patterns": ["(?:^|/)react-router(?:-dom)?(?:@[\\d.]+)?(?:/[^\\s\"'<>]+)?\\.(?:m?js|cjs)(?:[?#\"'<>\\s]|$)"],
             "globals": ["ReactRouter", "ReactRouterDOM", "__reactRouterVersion"]
           },
           {

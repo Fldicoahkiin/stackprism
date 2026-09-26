@@ -43,7 +43,9 @@
           {
             "name": "Vuex",
             "resourceHints": ["vuex"],
-            "patterns": ["(?:^|/)vuex(?:\\.(?:global|esm-browser|cjs|runtime))?(?:\\.prod)?(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"],
+            "patterns": [
+              "(?:^|/)vuex(?:\\.(?:global|esm-browser|cjs|runtime))?(?:\\.prod)?(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ],
             "globals": ["Vuex"]
           },
           {
@@ -565,7 +567,9 @@
           },
           {
             "name": "Plotly.js",
-            "patterns": ["(?:^|/)plotly(?:-(?:latest|basic|cartesian|finance|geo|gl3d|mapbox))?(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)plotly(?:-(?:latest|basic|cartesian|finance|geo|gl3d|mapbox))?(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "Three.js",
@@ -2278,9 +2282,7 @@
           },
           {
             "name": "antd",
-            "patterns": [
-              "(?:^|/)antd/.+\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
-            ]
+            "patterns": ["(?:^|/)antd/.+\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
           },
           {
             "name": "ant-design-vue",
@@ -2744,7 +2746,10 @@
           },
           {
             "name": "pace",
-            "patterns": ["(?:^|/)pace(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)pace(?:-[^/\\s\"'<>]+)?(?:\\.min)?\\.css(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)pace(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)pace(?:-[^/\\s\"'<>]+)?(?:\\.min)?\\.css(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "bootstrap-table",
@@ -2801,7 +2806,10 @@
           },
           {
             "name": "iCheck",
-            "patterns": ["(?:^|/)icheck(?:\\.min)?\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)iCheck/.+\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)icheck(?:\\.min)?\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)iCheck/.+\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "perfect-scrollbar",
@@ -2841,11 +2849,17 @@
           },
           {
             "name": "jquery-migrate",
-            "patterns": ["(?:^|/)jquery-migrate(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)jquery\\.migrate(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)jquery-migrate(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)jquery\\.migrate(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "jquery-easing",
-            "patterns": ["(?:^|/)jquery\\.easing(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)jquery\\.easing\\.compatibility(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)jquery\\.easing(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)jquery\\.easing\\.compatibility(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "jquery-mousewheel",
@@ -2857,7 +2871,10 @@
           },
           {
             "name": "waypoints",
-            "patterns": ["(?:^|/)jquery\\.waypoints(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)waypoints(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)jquery\\.waypoints(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)waypoints(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "counterup2",
@@ -2865,7 +2882,10 @@
           },
           {
             "name": "countup.js",
-            "patterns": ["(?:^|/)countUp(?:\\.umd)?(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)countup(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)countUp(?:\\.umd)?(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)countup(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "photoswipe",
@@ -2877,7 +2897,10 @@
           },
           {
             "name": "lightgallery",
-            "patterns": ["(?:^|/)lightgallery(?:\\.umd)?(?:\\.min)?\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)lightgallery/.+\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)lightgallery(?:\\.umd)?(?:\\.min)?\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)lightgallery/.+\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "dropzone",
@@ -2885,7 +2908,10 @@
           },
           {
             "name": "bootstrap-fileinput",
-            "patterns": ["(?:^|/)fileinput(?:\\.min)?\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)bootstrap-fileinput(?:\\.min)?\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)fileinput(?:\\.min)?\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)bootstrap-fileinput(?:\\.min)?\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "cropperjs",
@@ -2908,11 +2934,17 @@
           },
           {
             "name": "peity",
-            "patterns": ["(?:^|/)jquery\\.peity(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)peity(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)jquery\\.peity(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)peity(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "easy-pie-chart",
-            "patterns": ["(?:^|/)jquery\\.easypiechart(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)easy-pie-chart(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)jquery\\.easypiechart(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)easy-pie-chart(?:\\.min)?\\.js(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "jquery-sparklines",
@@ -2932,7 +2964,10 @@
           },
           {
             "name": "jstree",
-            "patterns": ["(?:^|/)jstree(?:\\.min)?\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)", "(?:^|/)jstree/.+\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)jstree(?:\\.min)?\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)",
+              "(?:^|/)jstree/.+\\.(?:js|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "zTree.v3",
@@ -3524,7 +3559,9 @@
           },
           {
             "name": "FormatJS",
-            "patterns": ["(?:^|/)@formatjs/(?:intl|icu-messageformat-parser|intl-messageformat|intl-localematcher|ecma402-abstract|fast-memoize|cli)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)@formatjs/(?:intl|icu-messageformat-parser|intl-messageformat|intl-localematcher|ecma402-abstract|fast-memoize|cli)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "Intl MessageFormat",
@@ -3649,7 +3686,9 @@
           },
           {
             "name": "ProseMirror",
-            "patterns": ["(?:^|/)prosemirror-(?:state|view|model|schema-basic|schema-list|commands|history|keymap|inputrules|transform|tables|menu|dropcursor|gapcursor)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)prosemirror-(?:state|view|model|schema-basic|schema-list|commands|history|keymap|inputrules|transform|tables|menu|dropcursor|gapcursor)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs|css)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "Tiptap",
@@ -3657,7 +3696,9 @@
           },
           {
             "name": "Slate",
-            "patterns": ["(?:^|/)(?:slate|slate-react|slate-history|slate-hyperscript)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)(?:slate|slate-react|slate-history|slate-hyperscript)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "Lexical",
@@ -4989,11 +5030,15 @@
           },
           {
             "name": "GraphQL",
-            "patterns": ["(?:^|/)graphql(?:@[^/\\s\"'<>]+)?/(?:index|graphql|language|utilities|validation|execution|jsutils)/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)graphql(?:@[^/\\s\"'<>]+)?/(?:index|graphql|language|utilities|validation|execution|jsutils)/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "tRPC",
-            "patterns": ["(?:^|/)@trpc/(?:client|react-query|next|vue-query|server)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)@trpc/(?:client|react-query|next|vue-query|server)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "Valibot",
@@ -5011,19 +5056,27 @@
           },
           {
             "name": "TanStack Table",
-            "patterns": ["(?:^|/)@tanstack/(?:react-table|vue-table|solid-table|svelte-table|table-core)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)@tanstack/(?:react-table|vue-table|solid-table|svelte-table|table-core)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "TanStack Router",
-            "patterns": ["(?:^|/)@tanstack/(?:react-router|router-core)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)@tanstack/(?:react-router|router-core)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "TanStack Virtual",
-            "patterns": ["(?:^|/)@tanstack/(?:react-virtual|vue-virtual|solid-virtual|svelte-virtual|virtual-core)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)@tanstack/(?:react-virtual|vue-virtual|solid-virtual|svelte-virtual|virtual-core)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "TanStack Form",
-            "patterns": ["(?:^|/)@tanstack/(?:react-form|vue-form|solid-form|svelte-form|form-core)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"]
+            "patterns": [
+              "(?:^|/)@tanstack/(?:react-form|vue-form|solid-form|svelte-form|form-core)(?:@[^/\\s\"'<>]+)?/.+\\.(?:m?js|cjs)(?:[?#][^\\s\"'<>]*)?(?:[\"'<>\\s]|$)"
+            ]
           },
           {
             "name": "Effector",

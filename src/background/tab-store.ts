@@ -56,22 +56,32 @@ export const formatBadgeCount = (count: number): string => {
   return count > 99 ? '99+' : String(count)
 }
 
+// 每个标签页最近一次写入的徽标内容：没变化就不再调用 action API（每次调用都会触发工具栏重绘）
+const badgeStates = new Map<number, string>()
+
+export const forgetBadgeState = (tabId: number): void => {
+  badgeStates.delete(tabId)
+}
+
 export const updateBadgeForTab = async (tabId: number, popup: any): Promise<void> => {
   const count = Number(popup?.counts?.total || 0)
   const text = formatBadgeCount(count)
+  const title = count > 0 ? `StackPrism 栈棱镜 · 已识别 ${count} 项技术` : 'StackPrism 栈棱镜'
+  const state = `${text}\n${title}`
+  if (badgeStates.get(tabId) === state) return
+  badgeStates.set(tabId, state)
   try {
     await chrome.action.setBadgeBackgroundColor({ tabId, color: '#0f766e' })
     await chrome.action.setBadgeText({ tabId, text })
-    await chrome.action.setTitle({
-      tabId,
-      title: count > 0 ? `StackPrism 栈棱镜 · 已识别 ${count} 项技术` : 'StackPrism 栈棱镜'
-    })
+    await chrome.action.setTitle({ tabId, title })
   } catch {
+    badgeStates.delete(tabId)
     return
   }
 }
 
 export const clearBadge = (tabId: number): void => {
+  badgeStates.delete(tabId)
   chrome.action.setBadgeText({ tabId, text: '' }).catch(() => {})
   chrome.action.setTitle({ tabId, title: 'StackPrism 栈棱镜' }).catch(() => {})
 }

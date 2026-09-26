@@ -96,7 +96,12 @@
               },
               {
                 "name": "Element UI / Element Plus",
-                "patterns": ["element-plus", "element-ui", "\\.el-", "(?:^|/)element/(?:index|element-ui|element-plus)(?:\\.min)?\\.(?:js|css)(?:[?#]|$)"]
+                "patterns": [
+                  "element-plus",
+                  "element-ui",
+                  "\\.el-",
+                  "(?:^|/)element/(?:index|element-ui|element-plus)(?:\\.min)?\\.(?:js|css)(?:[?#]|$)"
+                ]
               }
             ]
           },

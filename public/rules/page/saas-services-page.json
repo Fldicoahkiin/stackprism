@@ -1207,11 +1207,15 @@
           "rules": [
             {
               "name": "Branch.io",
-              "patterns": ["api\\.branch\\.io/v[0-9]+/|cdn\\.branch\\.io/(?:branch|web-sdk)[^\\s\"'<>]*\\.js|branch\\.io/[^\\s\"'<>]*(?:branch-latest|web-sdk|deepview|journeys)"]
+              "patterns": [
+                "api\\.branch\\.io/v[0-9]+/|cdn\\.branch\\.io/(?:branch|web-sdk)[^\\s\"'<>]*\\.js|branch\\.io/[^\\s\"'<>]*(?:branch-latest|web-sdk|deepview|journeys)"
+              ]
             },
             {
               "name": "AppsFlyer OneLink",
-              "patterns": ["onelinksmartscript\\.appsflyer\\.com/[^\\s\"'<>]*\\.js|websdk\\.appsflyer\\.com|appsflyersdk\\.com|appsflyer\\.com/[^\\s\"'<>]*(?:onelink-smart-script|web-sdk)"]
+              "patterns": [
+                "onelinksmartscript\\.appsflyer\\.com/[^\\s\"'<>]*\\.js|websdk\\.appsflyer\\.com|appsflyersdk\\.com|appsflyer\\.com/[^\\s\"'<>]*(?:onelink-smart-script|web-sdk)"
+              ]
             },
             {
               "name": "Firebase Dynamic Links",
@@ -1219,19 +1223,27 @@
             },
             {
               "name": "Adjust",
-              "patterns": ["cdn\\.adjust\\.com/adjust[^\\s\"'<>]*\\.js|app\\.adjust\\.com/(?:jsr|deeplink|event|session)|app\\.adjust\\.net\\.in/(?:jsr|deeplink|event|session)"]
+              "patterns": [
+                "cdn\\.adjust\\.com/adjust[^\\s\"'<>]*\\.js|app\\.adjust\\.com/(?:jsr|deeplink|event|session)|app\\.adjust\\.net\\.in/(?:jsr|deeplink|event|session)"
+              ]
             },
             {
               "name": "Singular",
-              "patterns": ["web-sdk-cdn\\.singular\\.net/[^\\s\"'<>]*singular[^\\s\"'<>]*\\.js|sdk-api\\.singular\\.net/api/v[0-9]+/|i\\.sng\\.link/[A-Za-z0-9]"]
+              "patterns": [
+                "web-sdk-cdn\\.singular\\.net/[^\\s\"'<>]*singular[^\\s\"'<>]*\\.js|sdk-api\\.singular\\.net/api/v[0-9]+/|i\\.sng\\.link/[A-Za-z0-9]"
+              ]
             },
             {
               "name": "Kochava",
-              "patterns": ["kvinit-prod\\.api\\.kochava\\.com|control\\.kochava\\.com/v1/(?:cpi|click)|assets\\.kochava\\.com/[^\\s\"'<>]*(?:sdk|kochava)[^\\s\"'<>]*\\.js"]
+              "patterns": [
+                "kvinit-prod\\.api\\.kochava\\.com|control\\.kochava\\.com/v1/(?:cpi|click)|assets\\.kochava\\.com/[^\\s\"'<>]*(?:sdk|kochava)[^\\s\"'<>]*\\.js"
+              ]
             },
             {
               "name": "Airbridge",
-              "patterns": ["static\\.airbridge\\.io/sdk/[^\\s\"'<>]*airbridge[^\\s\"'<>]*\\.js|core\\.airbridge\\.io/api/v[0-9]+/|abr\\.ge/[A-Za-z0-9]"]
+              "patterns": [
+                "static\\.airbridge\\.io/sdk/[^\\s\"'<>]*airbridge[^\\s\"'<>]*\\.js|core\\.airbridge\\.io/api/v[0-9]+/|abr\\.ge/[A-Za-z0-9]"
+              ]
             },
             {
               "name": "Tenjin",
@@ -2176,7 +2188,9 @@
             },
             {
               "name": "PubNub",
-              "patterns": ["ps\\.pndsn\\.com|pubsub\\.pubnub\\.com|cdn\\.pubnub\\.com|pubnub\\.com/[^\\s\"'<>]*(?:sdk|api|subscribe)|pubnub(?:\\.min)?\\.js"]
+              "patterns": [
+                "ps\\.pndsn\\.com|pubsub\\.pubnub\\.com|cdn\\.pubnub\\.com|pubnub\\.com/[^\\s\"'<>]*(?:sdk|api|subscribe)|pubnub(?:\\.min)?\\.js"
+              ]
             },
             {
               "name": "Liveblocks",
@@ -2184,11 +2198,15 @@
             },
             {
               "name": "Stream Chat",
-              "patterns": ["chat\\.stream-io-api\\.com|video\\.stream-io-api\\.com|stream-chat(?:\\.min)?\\.js|@stream-io/|stream-chat-react"]
+              "patterns": [
+                "chat\\.stream-io-api\\.com|video\\.stream-io-api\\.com|stream-chat(?:\\.min)?\\.js|@stream-io/|stream-chat-react"
+              ]
             },
             {
               "name": "Sendbird",
-              "patterns": ["api-[a-z0-9-]+\\.sendbird\\.com|ws-[a-z0-9-]+\\.sendbird\\.com|static\\.sendbird\\.com|sendbird(?:-calls)?(?:\\.min)?\\.js|@sendbird/"]
+              "patterns": [
+                "api-[a-z0-9-]+\\.sendbird\\.com|ws-[a-z0-9-]+\\.sendbird\\.com|static\\.sendbird\\.com|sendbird(?:-calls)?(?:\\.min)?\\.js|@sendbird/"
+              ]
             },
             {
               "name": "TalkJS",
@@ -3702,9 +3720,7 @@
             {
               "name": "WalletConnect",
               "resourceHints": ["walletconnect"],
-              "patterns": [
-                "(?:https?|wss?)://(?:relay|rpc|notify|explorer-api|pulse)\\.walletconnect\\.(?:com|org)"
-              ]
+              "patterns": ["(?:https?|wss?)://(?:relay|rpc|notify|explorer-api|pulse)\\.walletconnect\\.(?:com|org)"]
             },
             {
               "name": "Reown AppKit",
@@ -3738,11 +3754,7 @@
             {
               "name": "web3.storage",
               "resourceHints": ["web3.storage", "w3s.link"],
-              "patterns": [
-                "api\\.web3\\.storage/(?:upload|user/uploads|car)",
-                "w3s\\.link/ipfs/",
-                "[a-z0-9]+\\.ipfs\\.w3s\\.link(?:/|$)"
-              ]
+              "patterns": ["api\\.web3\\.storage/(?:upload|user/uploads|car)", "w3s\\.link/ipfs/", "[a-z0-9]+\\.ipfs\\.w3s\\.link(?:/|$)"]
             },
             {
               "name": "NFT.Storage Gateway",
@@ -3984,7 +3996,9 @@
         {
           "name": "Flagsmith",
           "kind": "Feature Flag",
-          "patterns": ["edge\\.api\\.flagsmith\\.com/api/v[0-9]+/|api\\.flagsmith\\.com/api/v[0-9]+/|cdn\\.jsdelivr\\.net/npm/flagsmith|unpkg\\.com/flagsmith"],
+          "patterns": [
+            "edge\\.api\\.flagsmith\\.com/api/v[0-9]+/|api\\.flagsmith\\.com/api/v[0-9]+/|cdn\\.jsdelivr\\.net/npm/flagsmith|unpkg\\.com/flagsmith"
+          ],
           "globals": ["flagsmith"]
         },
         {
@@ -7076,7 +7090,9 @@
             },
             {
               "name": "CodePen",
-              "patterns": ["cpwebassets\\.codepen\\.io/assets/embed|codepen\\.io/[^\\s\"'<>]+/(?:embed|pen|details)/|codepen\\.io/pen/define"]
+              "patterns": [
+                "cpwebassets\\.codepen\\.io/assets/embed|codepen\\.io/[^\\s\"'<>]+/(?:embed|pen|details)/|codepen\\.io/pen/define"
+              ]
             },
             {
               "name": "JSFiddle",

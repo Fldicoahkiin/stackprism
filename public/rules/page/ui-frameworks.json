@@ -73,7 +73,7 @@
                 "patterns": [
                   "element-plus",
                   "element-ui",
-                  "(?=[\\s\\S]*(?:^|/)element/index(?:\\.min)?\\.js(?:[?#]|[\"'<>\\s]|$))(?=[\\s\\S]*(?:(?:^|/)element/index(?:\\.min)?\\.css(?:[?#]|[\"'<>\\s]|$)|el-(?:button|form|input|table|dialog|select)))"
+                  "^(?=[\\s\\S]*(?:^|/)element/index(?:\\.min)?\\.js(?:[?#]|[\"'<>\\s]|$))(?=[\\s\\S]*(?:(?:^|/)element/index(?:\\.min)?\\.css(?:[?#]|[\"'<>\\s]|$)|el-(?:button|form|input|table|dialog|select)))"
                 ],
                 "classPrefixes": ["el-"]
               }

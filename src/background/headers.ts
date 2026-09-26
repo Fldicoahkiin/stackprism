@@ -374,17 +374,35 @@ export const addStoredCustomHeaderRules = (data: any, settings: any) => {
   }
 }
 
+const apiRecordKey = (record: any): string => {
+  try {
+    const url = new URL(record.url)
+    return `${url.origin}${url.pathname}`
+  } catch {
+    return record.url
+  }
+}
+
+const technologySignature = (record: any): string =>
+  (record?.technologies || [])
+    .map((tech: any) => `${tech.category}::${tech.name}::${tech.version || ''}`)
+    .sort()
+    .join('|')
+
+// 同一接口路径、同一协议、识别结果不变的请求不需要再写存储（视频分片、心跳、日志上报会反复命中）
+export const hasEquivalentHeaderRecord = (records: any[] | undefined, record: any): boolean => {
+  const key = apiRecordKey(record)
+  const signature = technologySignature(record)
+  return (records || []).some(
+    item => apiRecordKey(item) === key && item.httpProtocol === record.httpProtocol && technologySignature(item) === signature
+  )
+}
+
 export const dedupeApiRecords = (records: any[]) => {
   const seen = new Set<string>()
   const kept: any[] = []
   for (const record of records) {
-    let key: string
-    try {
-      const url = new URL(record.url)
-      key = `${url.origin}${url.pathname}`
-    } catch {
-      key = record.url
-    }
+    const key = apiRecordKey(record)
     if (seen.has(key)) continue
     seen.add(key)
     kept.push(record)
