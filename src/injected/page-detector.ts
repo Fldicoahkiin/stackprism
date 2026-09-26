@@ -13,6 +13,7 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
   const ruleRegexCache = new WeakMap()
   const ruleCombinedCache = new WeakMap()
   const ruleHintCache = new WeakMap()
+  const lineProbeCache = new WeakMap()
   const resources = collectResources()
   const classTokens = collectClassTokens()
   const cssVariables = collectCssVariables()
@@ -20,6 +21,8 @@ const detectPageTechnologies = async (ruleConfig: Record<string, unknown> = {}) 
   const globalKeys = safeGlobalKeys()
   const add = createCollector(technologies)
   let cachedBodyText = null
+  let classTokenSource = null
+  let classTokenNames = null
   let sliceStartedAt = performance.now()
   const hintIndex = createHintIndex(ruleConfig, {
     resources: resources.text,
@@ -1152,10 +1155,8 @@ ${html}`
 
     const matchResource = shouldMatchTarget(rule, 'resources')
     const matchHtml = !ruleResourceOnly && !context.resourceOnly && shouldMatchTarget(rule, 'html')
-    const allResources =
-      Array.isArray(rule.matchIn) && rule.matchIn.includes('url')
-        ? unique([location.href, ...(context.resources?.all || [])])
-        : context.resources?.all || []
+    const includePageUrl = Array.isArray(rule.matchIn) && rule.matchIn.includes('url')
+    const allResources = getContextResources(context, includePageUrl)
     const htmlText = context.text || ''
     const formatUrlEvidence = resource =>
       resource === location.href ? `页面 URL 匹配 ${shortUrl(resource)}` : `资源 URL 匹配 ${shortUrl(resource)}`
@@ -1187,10 +1188,7 @@ ${html}`
     const combined = getCompiledCombinedPattern(rule)
     if (combined) {
       if (matchResource) {
-        const resource = allResources.find(url => {
-          combined.lastIndex = 0
-          return combined.test(url)
-        })
+        const resource = findMatchingResource(combined, allResources, context, includePageUrl)
         if (resource) {
           return {
             confidence: rule.confidence || context.resourceConfidence || '高',
@@ -1211,10 +1209,7 @@ ${html}`
     const patterns = getCompiledRulePatterns(rule)
     for (const pattern of patterns) {
       if (matchResource) {
-        const resource = allResources.find(url => {
-          pattern.lastIndex = 0
-          return pattern.test(url)
-        })
+        const resource = findMatchingResource(pattern, allResources, context, includePageUrl)
         if (resource) {
           return {
             confidence: rule.confidence || context.resourceConfidence || '高',
@@ -1234,12 +1229,49 @@ ${html}`
     return null
   }
 
+  function getContextResources(context, includePageUrl) {
+    const key = includePageUrl ? '_resourcesWithPage' : '_resources'
+    if (!context[key]) {
+      const list = context.resources?.all || []
+      context[key] = includePageUrl ? unique([location.href, ...list]) : list
+    }
+    return context[key]
+  }
+
+  // 多行模式下 ^ / $ 按行匹配，与逐条 URL 测试等价；拼接只可能多出跨行命中，命中后仍逐条确认。
+  // 否定环视在行首行尾会把换行符当作相邻字符，可能少判，这类正则不做预判
+  function getLineProbe(pattern) {
+    let probe = lineProbeCache.get(pattern)
+    if (probe === undefined) {
+      probe = /\(\?<?!/.test(pattern.source) ? null : new RegExp(pattern.source, pattern.flags.replace(/[gym]/g, '') + 'm')
+      lineProbeCache.set(pattern, probe)
+    }
+    return probe
+  }
+
+  function findMatchingResource(pattern, resources, context, includePageUrl) {
+    if (!resources.length) return undefined
+    const probe = getLineProbe(pattern)
+    if (probe) {
+      const key = includePageUrl ? '_resourceLinesWithPage' : '_resourceLines'
+      if (context[key] === undefined) context[key] = resources.join('\n')
+      if (!probe.test(context[key])) return undefined
+    }
+    return resources.find(url => {
+      pattern.lastIndex = 0
+      return pattern.test(url)
+    })
+  }
+
   function matchCssVariables(rule, cssVariables) {
     if (!Array.isArray(rule.cssVariables) || !rule.cssVariables.length || !cssVariables?.names?.length) {
       return null
     }
 
-    const normalizedNames = new Set(cssVariables.names.map(name => name.toLowerCase()))
+    if (!cssVariables.lowerNameSet) {
+      cssVariables.lowerNameSet = new Set(cssVariables.names.map(name => name.toLowerCase()))
+    }
+    const normalizedNames = cssVariables.lowerNameSet
     const matched = rule.cssVariables.filter(name => normalizedNames.has(String(name).toLowerCase()))
     const minMatches = Math.max(1, Number(rule.minCssVariableMatches || 1))
     if (matched.length < minMatches) {
@@ -1277,8 +1309,11 @@ ${html}`
     const known = new Set()
     const found = new Map()
     const keyAt = (text, index) =>
-      ((text.charCodeAt(index) * 65536 + text.charCodeAt(index + 1)) * 65536 + text.charCodeAt(index + 2)) * 65536 +
-      text.charCodeAt(index + 3)
+      ((text.charCodeAt(index) << 21) ^
+        (text.charCodeAt(index + 1) << 14) ^
+        (text.charCodeAt(index + 2) << 7) ^
+        text.charCodeAt(index + 3)) &
+      0x3fffffff
     const register = hint => {
       if (hint.length < 4 || hint.includes('\n') || known.has(hint)) return
       known.add(hint)
@@ -1655,7 +1690,11 @@ ${html}`
   }
 
   function hasClassPrefix(classes, prefix) {
-    return Object.keys(classes).some(name => name.startsWith(prefix))
+    if (!classTokenNames || classTokenSource !== classes) {
+      classTokenSource = classes
+      classTokenNames = Object.keys(classes)
+    }
+    return classTokenNames.some(name => name.startsWith(prefix))
   }
 
   function scoreTailwind(classes) {
