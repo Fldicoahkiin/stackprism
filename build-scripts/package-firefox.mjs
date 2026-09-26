@@ -59,7 +59,15 @@ if (manifest.background?.service_worker) {
 manifest.browser_specific_settings = {
   gecko: {
     id: 'stackprism@setube.github.io',
-    strict_min_version: '128.0'
+    // 桌面版 140、Android 版 142 起支持内置数据收集声明；新上架的扩展必须声明
+    strict_min_version: '140.0',
+    // 识别全在本地完成，不收集、不传出任何数据
+    data_collection_permissions: {
+      required: ['none']
+    }
+  },
+  gecko_android: {
+    strict_min_version: '142.0'
   }
 }
 

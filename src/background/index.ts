@@ -113,41 +113,46 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 })
 
-chrome.webRequest.onHeadersReceived.addListener(
-  details => {
-    if (details.tabId < 0 || !details.responseHeaders) return
-    if (!isObservableRequestUrl(details.url)) return
-    if (!isRecordedRequestType(details.type as string)) return
+const handleHeadersReceived = (details: chrome.webRequest.WebResponseHeadersDetails) => {
+  if (details.tabId < 0 || !details.responseHeaders) return
+  if (!isObservableRequestUrl(details.url)) return
+  if (!isRecordedRequestType(details.type as string)) return
 
-    const tabId = details.tabId
-    const type = details.type as string
-    if (type === 'main_frame') rememberTabUrl(tabId, details.url)
-    Promise.all([loadTechRules(), loadDetectorSettings(), type === 'main_frame' ? details.url : resolveTabUrl(tabId)])
-      .then(async ([rules, settings, tabUrl]) => {
-        if (!isDetectablePageUrl(tabUrl)) {
-          clearTabDetectionState(tabId)
-          return
-        }
-        const record = buildHeaderRecord(details, rules.headers || {}, settings)
-        if (type !== 'main_frame') {
-          queueHeaderRecord(tabId, type, record)
-          return
-        }
-        // 新的主文档到了，上一页还没写入的接口记录作废
-        clearPendingHeaderRecords(tabId)
-        // 进 per-tab 锁:concurrent webRequest 事件不能并发 read-modify-write,否则会互相覆盖彼此的 apis / frames / main
-        await withTabWriteLock(tabId, async () => {
-          const latest = (await getTabData(tabId)) || {}
-          clearCrossOriginDynamicSnapshot(latest, details.url)
-          latest.main = shouldMergeHeaderRecords(latest.main, record) ? mergeHeaderRecords(latest.main, record) : record
-          latest.apis = []
-          latest.frames = []
-          latest.updatedAt = Date.now()
-          await saveTabDataAndBadge(tabId, latest, settings)
-        })
+  const tabId = details.tabId
+  const type = details.type as string
+  if (type === 'main_frame') rememberTabUrl(tabId, details.url)
+  Promise.all([loadTechRules(), loadDetectorSettings(), type === 'main_frame' ? details.url : resolveTabUrl(tabId)])
+    .then(async ([rules, settings, tabUrl]) => {
+      if (!isDetectablePageUrl(tabUrl)) {
+        clearTabDetectionState(tabId)
+        return
+      }
+      const record = buildHeaderRecord(details, rules.headers || {}, settings)
+      if (type !== 'main_frame') {
+        queueHeaderRecord(tabId, type, record)
+        return
+      }
+      // 新的主文档到了，上一页还没写入的接口记录作废
+      clearPendingHeaderRecords(tabId)
+      // 进 per-tab 锁:concurrent webRequest 事件不能并发 read-modify-write,否则会互相覆盖彼此的 apis / frames / main
+      await withTabWriteLock(tabId, async () => {
+        const latest = (await getTabData(tabId)) || {}
+        clearCrossOriginDynamicSnapshot(latest, details.url)
+        latest.main = shouldMergeHeaderRecords(latest.main, record) ? mergeHeaderRecords(latest.main, record) : record
+        latest.apis = []
+        latest.frames = []
+        latest.updatedAt = Date.now()
+        await saveTabDataAndBadge(tabId, latest, settings)
       })
-      .catch(() => {})
-  },
-  { urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] },
-  ['responseHeaders', 'extraHeaders']
-)
+    })
+    .catch(() => {})
+}
+
+const HEADER_REQUEST_FILTER = { urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] }
+
+// Firefox 没有 extraHeaders（响应头本来就带 Set-Cookie），传了会直接抛错
+try {
+  chrome.webRequest.onHeadersReceived.addListener(handleHeadersReceived, HEADER_REQUEST_FILTER, ['responseHeaders', 'extraHeaders'])
+} catch {
+  chrome.webRequest.onHeadersReceived.addListener(handleHeadersReceived, HEADER_REQUEST_FILTER, ['responseHeaders'])
+}
